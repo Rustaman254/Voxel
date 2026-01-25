@@ -1,0 +1,429 @@
+2026/01/21 20:42:01 Connected to MongoDB!
+[GIN-debug] [WARNING] Creating an Engine instance with the Logger and Recovery middleware already attached.
+
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] POST   /login                    --> main.main.func1 (4 handlers)
+[GIN-debug] GET    /ws                       --> main.main.func2 (4 handlers)
+2026/01/21 20:42:01 Server starting on port 8080
+[GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you to set a value.
+Please check https://github.com/gin-gonic/gin/blob/master/docs/doc.md#dont-trust-all-proxies for details.
+[GIN-debug] Listening and serving HTTP on :8080
+2026/01/21 21:10:09 Client registered: 62312dd7-f8ba-4065-9934-e629dacfc5a1
+[GIN] 2026/01/21 - 21:10:09 | 200 |    7.728767ms |  102.134.22.229 | GET      "/ws?userId=62312dd7-f8ba-4065-9934-e629dacfc5a1"
+2026/01/21 21:22:26 Client unregistered: 62312dd7-f8ba-4065-9934-e629dacfc5a1
+2026/01/21 21:26:25 Client registered: 3da11325-be0f-4c0c-b670-fd51a16570be
+[GIN] 2026/01/21 - 21:26:25 | 200 |    7.912356ms |  102.134.22.229 | GET      "/ws?userId=3da11325-be0f-4c0c-b670-fd51a16570be"
+2026/01/21 21:27:07 Client unregistered: 3da11325-be0f-4c0c-b670-fd51a16570be
+2026/01/21 21:27:46 Client registered: d21ee31f-981f-4e39-81c1-9eb4f218e94b
+[GIN] 2026/01/21 - 21:27:46 | 200 |     562.391µs |  102.134.22.229 | GET      "/ws?userId=d21ee31f-981f-4e39-81c1-9eb4f218e94b"
+[GIN] 2026/01/21 - 21:28:36 | 200 |     293.139µs |  102.134.22.229 | GET      "/ws?userId=3da11325-be0f-4c0c-b670-fd51a16570be"
+2026/01/21 21:28:36 Client registered: 3da11325-be0f-4c0c-b670-fd51a16570be
+2026/01/21 21:28:36 Client unregistered: 3da11325-be0f-4c0c-b670-fd51a16570be
+2026/01/21 21:35:07 Client unregistered: d21ee31f-981f-4e39-81c1-9eb4f218e94b
+2026/01/21 21:53:48 Client registered: 4622c961-7a2a-438b-a4d7-b7d675f58c2e
+[GIN] 2026/01/21 - 21:53:48 | 200 |   10.476884ms |  102.134.22.229 | GET      "/ws?userId=4622c961-7a2a-438b-a4d7-b7d675f58c2e"
+2026/01/21 22:02:30 Client registered: 167405c9-b93d-4333-a359-4c890906b018
+[GIN] 2026/01/21 - 22:02:30 | 200 |    7.836872ms |  102.134.22.229 | GET      "/ws?userId=167405c9-b93d-4333-a359-4c890906b018"
+2026/01/21 22:02:39 Client unregistered: 167405c9-b93d-4333-a359-4c890906b018
+[GIN] 2026/01/21 - 22:03:01 | 200 |      131.39µs |  102.134.22.229 | GET      "/ws?userId=a64abc41-8066-41ef-96c2-6d236a74b88d"
+2026/01/21 22:03:01 Client registered: a64abc41-8066-41ef-96c2-6d236a74b88d
+2026/01/21 22:08:13 error: websocket: close 1005 (no status)
+2026/01/21 22:08:13 Client unregistered: 4622c961-7a2a-438b-a4d7-b7d675f58c2e
+[GIN] 2026/01/21 - 22:08:17 | 200 |     311.941µs |  102.134.22.229 | GET      "/ws?userId=4622c961-7a2a-438b-a4d7-b7d675f58c2e"
+2026/01/21 22:08:17 Client registered: 4622c961-7a2a-438b-a4d7-b7d675f58c2e
+2026/01/21 22:08:24 error: websocket: close 1005 (no status)
+2026/01/21 22:08:24 Client unregistered: 4622c961-7a2a-438b-a4d7-b7d675f58c2e
+[GIN] 2026/01/21 - 22:08:26 | 200 |     304.987µs |  102.134.22.229 | GET      "/ws?userId=8e845229-c2ba-4366-bd51-59585d7a9f09"
+2026/01/21 22:08:26 Client registered: 8e845229-c2ba-4366-bd51-59585d7a9f09
+2026/01/21 22:09:43 error: websocket: close 1005 (no status)
+2026/01/21 22:09:43 Client unregistered: a64abc41-8066-41ef-96c2-6d236a74b88d
+[GIN] 2026/01/21 - 22:09:48 | 200 |     316.564µs |  102.134.22.229 | GET      "/ws?userId=a64abc41-8066-41ef-96c2-6d236a74b88d"
+2026/01/21 22:09:48 Client registered: a64abc41-8066-41ef-96c2-6d236a74b88d
+2026/01/21 22:09:50 error: websocket: close 1005 (no status)
+2026/01/21 22:09:50 Client unregistered: a64abc41-8066-41ef-96c2-6d236a74b88d
+[GIN] 2026/01/21 - 22:09:52 | 200 |     344.016µs |  102.134.22.229 | GET      "/ws?userId=a7984ef1-8c8f-4431-b233-d7099abec4d9"
+2026/01/21 22:09:52 Client registered: a7984ef1-8c8f-4431-b233-d7099abec4d9
+2026/01/21 22:11:39 error: websocket: close 1005 (no status)
+2026/01/21 22:11:39 Client unregistered: 8e845229-c2ba-4366-bd51-59585d7a9f09
+[GIN] 2026/01/21 - 22:11:43 | 200 |     253.326µs |  102.134.22.229 | GET      "/ws?userId=8e845229-c2ba-4366-bd51-59585d7a9f09"
+2026/01/21 22:11:43 Client registered: 8e845229-c2ba-4366-bd51-59585d7a9f09
+2026/01/21 22:11:58 error: websocket: close 1005 (no status)
+2026/01/21 22:11:58 Client unregistered: a7984ef1-8c8f-4431-b233-d7099abec4d9
+[GIN] 2026/01/21 - 22:12:02 | 200 |     265.167µs |  102.134.22.229 | GET      "/ws?userId=a7984ef1-8c8f-4431-b233-d7099abec4d9"
+2026/01/21 22:12:02 Client registered: a7984ef1-8c8f-4431-b233-d7099abec4d9
+2026/01/21 22:22:58 Client unregistered: a7984ef1-8c8f-4431-b233-d7099abec4d9
+2026/01/21 23:00:09 Client unregistered: 8e845229-c2ba-4366-bd51-59585d7a9f09
+2026/01/21 23:09:48 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:09:48 | 200 |   56.438698ms |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:09:53 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:09:58 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:09:58 | 200 |    1.251591ms |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:09:59 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:10:05 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:10:05 | 200 |     854.121µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:10:05 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:10:10 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:10:10 | 200 |     403.739µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:10:11 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:10:16 | 200 |     815.227µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:10:16 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:10:17 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:10:21 | 200 |     305.677µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:10:21 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:10:22 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:10:28 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:10:28 | 200 |     708.244µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:10:29 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:10:34 | 200 |     278.792µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:10:34 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:10:34 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:10:39 | 200 |     292.639µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:10:39 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:10:40 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:10:45 | 200 |     274.126µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:10:45 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:10:46 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:10:51 | 200 |     338.152µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:10:51 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:10:52 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:10:57 | 200 |    1.411143ms |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:10:57 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:10:57 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:11:03 | 200 |     351.799µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:11:03 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:11:04 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:11:21 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:11:21 | 200 |    8.662759ms |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:11:22 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:11:27 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:11:27 | 200 |     519.638µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:11:28 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:11:30 | 200 |     301.952µs |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:11:30 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:11:31 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:11:33 | 200 |     406.755µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:11:33 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:11:33 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:11:36 | 200 |    6.277208ms |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:11:36 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:11:37 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:11:38 | 200 |    6.134774ms |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:11:38 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:11:39 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:11:42 | 200 |     150.545µs |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:11:42 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:11:43 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:11:44 | 200 |     604.799µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:11:44 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:11:45 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:11:47 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:11:47 | 200 |     404.363µs |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:11:48 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:11:50 | 200 |     375.834µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:11:50 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:11:50 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:11:53 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:11:53 | 200 |     109.509µs |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:11:53 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:11:55 | 200 |     333.792µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:11:55 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:11:56 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:11:59 | 200 |    2.027247ms |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:11:59 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:11:59 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:12:04 | 200 |     384.225µs |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:12:04 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:12:05 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:12:06 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:12:06 | 200 |     975.554µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:12:07 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:12:09 | 200 |     162.543µs |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:12:09 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:12:10 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:12:11 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:12:11 | 200 |     363.267µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:12:13 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:12:14 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:12:14 | 200 |    5.364855ms |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:12:15 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:12:17 | 200 |     272.426µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:12:17 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:12:18 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:12:19 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:12:19 | 200 |      794.55µs |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:12:20 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:12:23 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:12:23 | 200 |    1.225153ms |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:12:24 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:12:24 | 200 |     358.583µs |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:12:24 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:12:25 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:12:28 | 200 |      373.96µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:12:28 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:12:29 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:12:31 | 200 |     108.433µs |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:12:31 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:12:31 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:12:35 | 200 |     631.129µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:12:35 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:12:35 | 200 |     106.192µs |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:12:35 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:12:36 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:12:36 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:12:40 | 200 |     299.049µs |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:12:40 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:12:41 | 200 |     329.616µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:12:41 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:12:41 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:12:41 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:12:45 | 200 |      88.243µs |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:12:45 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:12:46 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:12:47 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:12:47 | 200 |     109.891µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:12:47 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:12:50 | 200 |    1.430238ms |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:12:50 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:12:51 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:12:52 | 200 |     125.381µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:12:52 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:12:53 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:12:56 | 200 |     363.388µs |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:12:56 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:12:56 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:12:57 | 200 |     334.662µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:12:57 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:12:58 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:13:01 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:13:01 | 200 |     518.697µs |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:13:01 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:13:02 | 200 |      418.57µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:13:02 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:13:03 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:13:06 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:13:06 | 200 |     437.813µs |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:13:07 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:13:07 | 200 |     316.419µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:13:07 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:13:08 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:13:11 | 200 |     221.623µs |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:13:11 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:13:11 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:13:12 | 200 |      91.808µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:13:12 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:13:13 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:13:16 | 200 |     191.261µs |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:13:16 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:13:16 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:13:17 | 200 |     373.937µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:13:17 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:13:18 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:13:21 | 200 |      82.518µs |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:13:21 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:13:21 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:13:22 | 200 |    3.097769ms |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:13:22 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:13:23 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:13:26 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:13:26 | 200 |     116.586µs |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:13:27 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:13:27 | 200 |     317.887µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:13:27 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:13:28 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:13:32 | 200 |     342.815µs |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:13:32 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:13:32 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:13:33 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:13:33 | 200 |      79.845µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:13:35 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:13:37 | 200 |     145.077µs |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:13:37 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:13:38 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:13:39 | 200 |     289.007µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:13:39 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:13:40 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:13:42 | 200 |     394.821µs |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:13:42 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:13:43 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:13:45 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:13:45 | 200 |     112.672µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:13:45 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:13:47 | 200 |     581.127µs |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:13:47 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:13:48 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:13:50 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:13:50 | 200 |     366.882µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:13:50 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:13:52 | 200 |     356.625µs |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:13:52 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:13:53 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:13:55 | 200 |     287.896µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:13:55 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:13:56 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:13:57 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:13:57 | 200 |     134.519µs |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:13:58 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:14:00 | 200 |     129.132µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:14:00 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:14:01 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:14:02 | 200 |     367.768µs |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:14:02 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:14:03 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:14:07 | 200 |     309.737µs |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:14:07 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:14:08 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:14:10 | 200 |      391.63µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:14:10 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:14:11 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:14:13 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:14:13 | 200 |     513.517µs |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:14:14 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+[GIN] 2026/01/21 - 23:14:16 | 200 |       331.4µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:14:16 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+2026/01/21 23:14:16 Client unregistered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:14:18 | 200 |       334.5µs |  102.134.22.229 | GET      "/ws?userId=c9377b96-3eb0-4689-859e-5fa9a7bb4614"
+2026/01/21 23:14:18 Client registered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:14:21 Client registered: f9f115f5-3e93-46c0-a3f7-ceaf785e7507
+[GIN] 2026/01/21 - 23:14:21 | 200 |     221.791µs |  102.134.22.229 | GET      "/ws?userId=f9f115f5-3e93-46c0-a3f7-ceaf785e7507"
+2026/01/21 23:15:45 Client unregistered: c9377b96-3eb0-4689-859e-5fa9a7bb4614
+2026/01/21 23:16:58 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:16:58 | 200 |    6.690799ms |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:17:00 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:17:05 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:17:05 | 200 |     907.892µs |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:17:05 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:17:10 | 200 |     654.301µs |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:17:10 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:17:11 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:17:15 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:17:15 | 200 |    1.077916ms |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:17:16 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:17:21 | 200 |     482.583µs |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:17:21 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:17:22 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:17:27 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:17:27 | 200 |   21.206907ms |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:17:27 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:17:32 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:17:32 | 200 |     116.699µs |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:17:32 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:17:38 | 200 |     349.135µs |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:17:38 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:17:39 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:17:43 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:17:43 | 200 |      802.93µs |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:17:44 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:17:48 | 200 |     534.334µs |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:17:48 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:17:49 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:17:54 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:17:54 | 200 |   13.297749ms |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:17:54 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:17:59 | 200 |    5.999616ms |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:17:59 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:18:00 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:18:04 | 200 |     907.175µs |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:18:04 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:18:05 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:18:09 | 200 |    1.276285ms |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:18:09 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:18:10 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:18:14 | 200 |     990.869µs |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:18:14 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:18:15 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:18:20 | 200 |     591.337µs |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:18:20 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:18:20 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:18:25 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:18:25 | 200 |     159.141µs |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:18:26 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:18:30 | 200 |     286.634µs |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:18:30 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:18:32 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:18:37 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:18:37 | 200 |     974.406µs |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:18:37 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:18:43 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:18:43 | 200 |    1.104574ms |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:18:43 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:18:48 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:18:48 | 200 |     45.8946ms |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:18:49 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:18:53 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:18:53 | 200 |     130.184µs |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:18:54 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:18:58 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:18:58 | 200 |    1.425572ms |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:19:00 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:19:05 | 200 |    2.384192ms |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:19:05 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:19:06 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:19:10 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:19:10 | 200 |     348.234µs |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:19:11 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:19:15 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:19:15 | 200 |     839.591µs |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:19:16 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:19:21 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:19:21 | 200 |     377.191µs |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:19:22 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:19:26 | 200 |     293.784µs |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:19:26 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:19:27 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:19:31 | 200 |     937.407µs |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:19:31 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:19:32 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:19:36 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:19:36 | 200 |      447.99µs |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:19:37 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:19:41 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:19:41 | 200 |     558.717µs |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:19:42 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:19:46 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:19:46 | 200 |     482.293µs |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:19:47 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:19:51 | 200 |     139.943µs |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:19:51 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:19:52 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:19:57 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:19:57 | 200 |   22.259672ms |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:19:58 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:20:02 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:20:02 | 200 |   11.890814ms |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:20:04 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:20:08 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:20:08 | 200 |     696.569µs |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:20:10 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:20:17 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:20:17 | 200 |   85.058264ms |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:20:18 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:20:23 | 200 |     850.977µs |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:20:23 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:20:23 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:20:28 | 200 |    3.550892ms |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:20:28 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:20:28 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:20:33 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:20:33 | 200 |   14.586142ms |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:20:33 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:20:38 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:20:38 | 200 |   95.338565ms |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:20:39 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:20:44 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:20:44 | 200 |   19.832523ms |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:20:45 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:20:49 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:20:49 | 200 |   21.421366ms |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:20:50 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:20:55 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:20:55 | 200 |    8.100175ms |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:20:56 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:21:26 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:21:26 | 200 |  2.216001624s |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:21:28 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+2026/01/21 23:21:43 Client registered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
+[GIN] 2026/01/21 - 23:21:43 | 200 |   24.344109ms |  102.134.22.229 | GET      "/ws?userId=899a9d17-9a2e-4514-9101-1d6bf9623f1e"
+2026/01/21 23:21:44 Client unregistered: 899a9d17-9a2e-4514-9101-1d6bf9623f1e
