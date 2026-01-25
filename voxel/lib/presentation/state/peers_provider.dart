@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:audioplayers/audioplayers.dart';
 import '../../domain/entities/avatar_position.dart';
 import '../../domain/services/voice_chat_service.dart';
 import '../../data/services/webrtc_voice_service.dart';
@@ -60,6 +61,11 @@ final nearbyPeersProvider = Provider<Set<String>>((ref) {
 // 2. Logic to act on changes in nearby peers
 final proximityLogicProvider = Provider<void>((ref) {
   final voiceService = ref.read(voiceChatServiceProvider);
+  final audioPlayer = AudioPlayer();
+  
+  ref.onDispose(() {
+    audioPlayer.dispose();
+  });
   
   // Listen to changes and only act if the set is different
   ref.listen<Set<String>>(nearbyPeersProvider, (previous, next) {
@@ -69,9 +75,23 @@ final proximityLogicProvider = Provider<void>((ref) {
 
     if (!hasChanged) return;
 
-    if (next.isNotEmpty) {
+    // Detect joins and leaves
+    final joined = next.difference(prevSet);
+    final left = prevSet.difference(next);
+
+    // Play join chime for new users
+    if (joined.isNotEmpty) {
+      audioPlayer.play(AssetSource('sounds/join.wav'), volume: 0.5);
       voiceService.joinGroup(next);
-    } else {
+    }
+
+    // Play leave chime for departed users
+    if (left.isNotEmpty) {
+      audioPlayer.play(AssetSource('sounds/leave.wav'), volume: 0.5);
+    }
+
+    // Update voice service
+    if (next.isEmpty) {
       voiceService.leaveGroup();
     }
   }, fireImmediately: true);

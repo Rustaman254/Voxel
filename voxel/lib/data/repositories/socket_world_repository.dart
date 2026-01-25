@@ -177,8 +177,10 @@ class SocketWorldRepository implements WorldRepository {
         if (payload is Map<String, dynamic>) {
           final userId = payload['userId'];
           if (userId != null) {
+            debugPrint('👋 User left: $userId');
             _peers.remove(userId);
             _emitPositions();
+            debugPrint('📊 Active peers: ${_peers.length}');
           }
         }
       } else if (type == 'audio') {

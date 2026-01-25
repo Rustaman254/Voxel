@@ -8,6 +8,9 @@ abstract class VoiceChatService {
   /// Stream of current voice state (e.g. connected users, connection status)
   Stream<VoiceChatState> get state;
 
+  /// Mute or unmute the microphone
+  void setMuted(bool muted);
+
   /// Send audio chunk
   void sendAudioChunk(List<int> chunk);
 }

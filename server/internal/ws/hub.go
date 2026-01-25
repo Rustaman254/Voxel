@@ -69,13 +69,18 @@ func (h *Hub) Run() {
 				close(client.Send)
 				log.Printf("Client unregistered: %s", userID)
 
-				// Broadcast leave message to the session
+				// Broadcast leave message to ALL clients (global or session)
+				msg, _ := json.Marshal(Message{
+					Type:    "leave",
+					Payload: map[string]string{"userId": userID},
+				})
+				
 				if client.SessionID != "" {
-					msg, _ := json.Marshal(Message{
-						Type:    "leave",
-						Payload: map[string]string{"userId": userID},
-					})
-					h.broadcastToSession(msg, client.SessionID, nil) // No exclusion needed
+					// Broadcast to session
+					h.broadcastToSession(msg, client.SessionID, nil)
+				} else {
+					// Broadcast to global world
+					h.broadcastMessage(msg, nil)
 				}
 			}
 		case bm := <-h.Broadcast:

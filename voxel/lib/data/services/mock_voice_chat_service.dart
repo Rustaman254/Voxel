@@ -48,4 +48,10 @@ class MockVoiceChatService implements VoiceChatService {
   void sendAudioChunk(List<int> chunk) {
     // Mock implementation does nothing
   }
+
+  @override
+  void setMuted(bool muted) {
+    // Mock implementation does nothing
+    print('VoiceChat: Muted = $muted');
+  }
 }

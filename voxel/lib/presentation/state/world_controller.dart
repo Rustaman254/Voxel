@@ -214,6 +214,9 @@ class WorldController extends StateNotifier<WorldState> {
       isMuted: newMute,
       isManuallyMuted: newMute, // If user toggles, we consider it a manual choice
     );
+    
+    // Actually mute/unmute the microphone
+    _voiceChatService?.setMuted(newMute);
   }
 
   void toggleGpsMode() {

@@ -52,6 +52,9 @@ class WebRtcVoiceService implements VoiceChatService {
            'googAutoGainControl': true,
            'googNoiseSuppression': true,
            'googHighpassFilter': true,
+           // CRITICAL: Disable local audio monitoring
+           'audioGainControl': false,
+           'audioMirroring': false,
         },
         'video': false,
       };
@@ -59,16 +62,16 @@ class WebRtcVoiceService implements VoiceChatService {
       debugPrint('🎙️ Requesting local media...');
       _localStream = await navigator.mediaDevices.getUserMedia(constraints);
       
-      // Ensure audio is enabled
+      // Ensure audio is enabled for transmission only (not playback)
       _localStream!.getAudioTracks().forEach((track) {
         track.enabled = true;
-        debugPrint('✅ Audio track enabled: ${track.id}');
+        debugPrint('✅ Audio track enabled for transmission only: ${track.id}');
       });
 
-      // Ensure audio is routed to speaker by default for voice chat feel
+      // Ensure remote audio (not local) is routed to speaker
       if (!kIsWeb) {
         await Helper.setSpeakerphoneOn(true);
-        debugPrint('🔊 Speakerphone enabled');
+        debugPrint('🔊 Speakerphone enabled for remote audio only');
       }
       
       debugPrint('✅ Local WebRTC audio stream initialized');
@@ -207,11 +210,26 @@ class WebRtcVoiceService implements VoiceChatService {
   }
 
   Future<void> _setupRemoteAudio(String peerId, MediaStream stream) async {
+    debugPrint('🔊 Setting up remote audio for $peerId');
+    
+    // Verify this is NOT our local stream
+    if (stream == _localStream) {
+      debugPrint('⚠️ Prevented local audio loopback!');
+      return;
+    }
+    
     final renderer = RTCVideoRenderer();
     await renderer.initialize();
     renderer.srcObject = stream;
+    
+    // Ensure audio tracks are enabled for playback
+    stream.getAudioTracks().forEach((track) {
+      track.enabled = true;
+      debugPrint('🔊 Remote audio track enabled: ${track.id}');
+    });
+    
     _remoteRenderers[peerId] = renderer;
-    debugPrint('🔊 Remote audio attached for $peerId');
+    debugPrint('✅ Remote audio attached for $peerId');
   }
 
   @override
@@ -276,6 +294,16 @@ class WebRtcVoiceService implements VoiceChatService {
   void sendAudioChunk(List<int> chunk) {
     // WebRTC handles audio streaming directly via tracks, 
     // so manual chunks are not needed here.
+  }
+
+  @override
+  void setMuted(bool muted) {
+    if (_localStream == null) return;
+    
+    _localStream!.getAudioTracks().forEach((track) {
+      track.enabled = !muted;
+      debugPrint(muted ? '🔇 Microphone muted' : '🎙️ Microphone unmuted');
+    });
   }
 
   @override
