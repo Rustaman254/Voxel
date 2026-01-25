@@ -88,16 +88,18 @@ func (h *Hub) Run() {
 			// Session-specific events
 			if msg.Type == "move" || msg.Type == "audio" ||
 				msg.Type == "webrtc_offer" || msg.Type == "webrtc_answer" || msg.Type == "webrtc_ice_candidate" {
-				if bm.Exclude != nil && bm.Exclude.SessionID != "" {
-					// Update server state for "move" events
-					if msg.Type == "move" {
-						if payload, ok := msg.Payload.(map[string]interface{}); ok {
-							if userID, ok := payload["userId"].(string); ok && userID != "" {
-								h.UserPositions[userID] = payload
-							}
+				
+				// Update server state for "move" events (Global or Session)
+				if msg.Type == "move" {
+					if payload, ok := msg.Payload.(map[string]interface{}); ok {
+						if userID, ok := payload["userId"].(string); ok && userID != "" {
+							h.UserPositions[userID] = payload
 						}
 					}
-					// Broadcast to the session
+				}
+
+				if bm.Exclude != nil {
+					// Broadcast to the session (matching SessionID, including empty string)
 					h.broadcastToSession(bm.Message, bm.Exclude.SessionID, bm.Exclude)
 				}
 			} else {

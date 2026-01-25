@@ -17,7 +17,7 @@ class SocketWorldRepository implements WorldRepository {
   
   // Determine URL based on platform/build config
   // Current Machine IP: 192.168.1.133
-  static const String _defaultWsUrl = 'wss://unmeet-meghan-displeasedly.ngrok-free.dev/ws';
+  static const String _defaultWsUrl = 'wss://voxel-nxjg.onrender.com/ws';
   final String _wsUrl = const String.fromEnvironment('WS_URL', defaultValue: _defaultWsUrl);
 
   final _statusController = StreamController<bool>.broadcast();

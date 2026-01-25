@@ -77,8 +77,10 @@ class WorldController extends StateNotifier<WorldState> {
     if (_userId != null) {
       _initMyPosition();
       _worldRepository.connect(_userId!).then((_) {
-         // Re-send position after connection is established to ensure sync
+         // CRITICAL: Re-send position after connection is established
+         // This makes us visible to everyone else in the global world immediately
          if (state.myPosition != null) {
+           debugPrint('📍 Sending initial position sync');
            _worldRepository.updateMyPosition(state.myPosition!);
          }
       });

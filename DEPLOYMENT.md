@@ -46,6 +46,7 @@ Render is ideal for hosting the Go backend.
 2. **Configuration**:
    - **Environment**: `Go`
    - **Build Command**: `go build -o server_bin cmd/api/main.go`
+   - **Build Command**: `go build -tags netgo -ldflags '-s -w' -o app`
    - **Start Command**: `./server_bin`
 3. **Environment Variables**:
    Update these in the Render dashboard under **Environment**:
