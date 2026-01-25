@@ -25,6 +25,7 @@ class SocketWorldRepository implements WorldRepository {
   final _eventController = StreamController<Map<String, dynamic>>.broadcast();
   final _eventsListController = StreamController<List<dynamic>>.broadcast();
   final _sessionController = StreamController<Map<String, dynamic>>.broadcast();
+  final _signalingController = StreamController<Map<String, dynamic>>.broadcast();
   
   bool _isConnected = false;
   String? _lastUserId;
@@ -196,7 +197,14 @@ class SocketWorldRepository implements WorldRepository {
         if (payload is Map<String, dynamic>) {
           _sessionController.add(payload);
         }
-      } 
+      } else if (type == 'webrtc_offer' || type == 'webrtc_answer' || type == 'webrtc_ice_candidate') {
+        if (payload is Map<String, dynamic>) {
+          // Add type to payload for easier processing in service
+          final signalingData = Map<String, dynamic>.from(payload);
+          signalingData['type'] = type;
+          _signalingController.add(signalingData);
+        }
+      }
       // Handle 'join', 'leave' similarly if server sends them
       
     } catch (e) {
@@ -326,6 +334,23 @@ class SocketWorldRepository implements WorldRepository {
     
     _send(msg);
   }
+  
+  @override
+  void sendSignaling(String type, String targetId, dynamic data) {
+    if (_channel == null) return;
+    
+    _send({
+      'type': type,
+      'payload': {
+        'targetId': targetId,
+        'senderId': _lastUserId,
+        'data': data,
+      }
+    });
+  }
+
+  @override
+  Stream<Map<String, dynamic>> subscribeSignaling() => _signalingController.stream;
   
   // Session Methods
   void createSession(String gameType) {

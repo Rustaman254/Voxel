@@ -20,7 +20,6 @@ import 'package:record/record.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'game_setup_screen.dart';
 import '../../domain/models/event_model.dart';
-import '../../data/services/socket_voice_chat_service.dart';
 import '../../domain/repositories/world_repository.dart';
 
 class WorldScreen extends ConsumerStatefulWidget {
@@ -38,10 +37,7 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
   VoxelEvent? _selectedEvent;
   bool _isCollisionPopup = false;
   
-  // Voice Visualization
-  final _audioRecorder = AudioRecorder();
-  StreamSubscription? _micSubscription;
-  double _voiceVolume = 0.0;
+  // Voice Visualization - Removed local mic handling
 
   void _showEventDiscovery(BuildContext context, WidgetRef ref, List<VoxelEvent> events) {
     showModalBottomSheet(
@@ -185,71 +181,10 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
   @override
   void initState() {
     super.initState();
-    _initMic();
   }
   
-  Future<void> _initMic() async {
-    final status = await Permission.microphone.request();
-    if (!status.isGranted) {
-      debugPrint('Microphone permission denied');
-      return;
-    }
-    
-    try {
-      final config = const RecordConfig(
-        encoder: AudioEncoder.pcm16bits,
-        sampleRate: 16000,
-        numChannels: 1,
-      );
-
-      final stream = await _audioRecorder.startStream(config);
-
-      _micSubscription = stream.listen((samples) {
-        final worldState = ref.read(worldControllerProvider);
-        if (worldState.isMuted || !mounted) {
-           if (!mounted) return;
-           ref.read(worldControllerProvider.notifier).setTalking(false);
-           setState(() => _voiceVolume = 0.0);
-           return;
-        }
-
-        // Send to voice service
-        final voiceService = ref.read(voiceChatServiceProvider);
-        if (voiceService is SocketVoiceChatService) {
-           // debugPrint('🎤 Mic data: ${samples.length} bytes'); // Optional: very spammy
-           voiceService.sendAudioChunk(samples);
-        }
-        
-        // Correctly interpret bytes as 16-bit PCM (Shorts)
-        final buffer = samples.buffer.asInt16List();
-        double sum = 0;
-        for (int sample in buffer) {
-          sum += sample * sample;
-        }
-        double rms = buffer.isNotEmpty ? sqrt(sum / buffer.length) : 0;
-        
-        // Normalize (Int16 max is 32767. 3000 is a good threshold for "normal" speech)
-        double normalized = (rms / 3000).clamp(0.0, 1.0);
-        
-        setState(() {
-          _voiceVolume = normalized;
-        });
-
-        // Sync talking state - Lower threshold for better reactivity
-        final isTalking = normalized > 0.05; 
-        if (isTalking != worldState.myPosition?.isTalking) {
-           ref.read(worldControllerProvider.notifier).setTalking(isTalking);
-        }
-      });
-    } catch (e) {
-      debugPrint('Mic Error: $e');
-    }
-  }
-
   @override
   void dispose() {
-    _micSubscription?.cancel();
-    _audioRecorder.dispose();
     super.dispose();
   }
 
@@ -286,7 +221,7 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
       );
       return d < 30.0;
     });
-    final isTalking = _voiceVolume > 0.05 && !worldState.isMuted;
+    final isTalking = voiceStateAsync.value?.isTalking ?? false; // Now depends on voiceStateProvider
     
     final isCameraAtPlayer = worldState.myPosition != null && 
         (worldState.cameraX - worldState.myPosition!.x).abs() < 200 && 
@@ -691,8 +626,8 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                               if (isTalking)
                                 BoxShadow(
                                   color: const Color(0xFFB452FF).withOpacity(0.6), 
-                                  blurRadius: 10 + (_voiceVolume * 10), 
-                                  spreadRadius: _voiceVolume * 5
+                                  blurRadius: 20, 
+                                  spreadRadius: 5
                                 ),
                             ],
                           ),

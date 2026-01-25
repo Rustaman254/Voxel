@@ -2,8 +2,9 @@ import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/avatar_position.dart';
 import '../../domain/services/voice_chat_service.dart';
-import '../../data/services/socket_voice_chat_service.dart';
+import '../../data/services/webrtc_voice_service.dart';
 import 'world_controller.dart';
+import 'auth_notifier.dart';
 
 // Stream of all other users' positions
 final peersStreamProvider = StreamProvider<List<AvatarPosition>>((ref) {
@@ -13,7 +14,9 @@ final peersStreamProvider = StreamProvider<List<AvatarPosition>>((ref) {
 
 final voiceChatServiceProvider = Provider<VoiceChatService>((ref) {
   final repo = ref.watch(worldRepositoryProvider);
-  final service = SocketVoiceChatService(repo);
+  final userId = ref.watch(authProvider).value?.id ?? 'anon';
+  
+  final service = WebRtcVoiceService(repo, userId);
   
   // Ensure proper disposal when provider is disposed
   ref.onDispose(() {

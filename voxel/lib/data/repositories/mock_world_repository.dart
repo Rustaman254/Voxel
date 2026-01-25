@@ -87,4 +87,10 @@ class MockWorldRepository implements WorldRepository {
 
   @override
   AvatarPosition? getMyPosition() => null;
+
+  @override
+  void sendSignaling(String type, String targetId, dynamic data) {}
+
+  @override
+  Stream<Map<String, dynamic>> subscribeSignaling() => const Stream.empty();
 }

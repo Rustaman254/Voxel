@@ -17,9 +17,11 @@ enum VoiceChatStatus { disconnected, connecting, connected }
 class VoiceChatState {
   final VoiceChatStatus status;
   final Set<String> connectedUserIds;
+  final bool isTalking;
 
   const VoiceChatState({
     this.status = VoiceChatStatus.disconnected,
     this.connectedUserIds = const {},
+    this.isTalking = false,
   });
 }
