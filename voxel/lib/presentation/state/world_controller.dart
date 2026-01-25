@@ -68,6 +68,7 @@ class WorldController extends StateNotifier<WorldState> {
   final String _avatarUrl;
   StreamSubscription<Position>? _locationSubscription;
   StreamSubscription<List<AvatarPosition>>? _peersSubscription;
+  StreamSubscription<VoiceChatState>? _voiceSubscription;
   Timer? _heartbeatTimer;
 
   WorldController(this._worldRepository, this._locationService, this._voiceChatService, this._userId, {String username = '', String avatarUrl = ''}) 
@@ -86,7 +87,16 @@ class WorldController extends StateNotifier<WorldState> {
       });
       _initLocationTracking();
       _initPeersTracking();
+      _initVoiceTracking();
       _startHeartbeat();
+    }
+  }
+
+  void _initVoiceTracking() {
+    if (_voiceChatService != null) {
+      _voiceSubscription = _voiceChatService!.state.listen((vState) {
+         setTalking(vState.isTalking);
+      });
     }
   }
 
@@ -247,8 +257,8 @@ class WorldController extends StateNotifier<WorldState> {
     // Always update local state immediately for smooth UI
     state = state.copyWith(myPosition: newPos);
     
-    // Throttle network updates (max 20 per second = 50ms)
-    if (DateTime.now().difference(_lastPositionUpdate).inMilliseconds > 50) {
+    // Throttle network updates (max 30 per second = 33ms)
+    if (DateTime.now().difference(_lastPositionUpdate).inMilliseconds > 33) {
       _lastPositionUpdate = DateTime.now();
       _worldRepository.updateMyPosition(newPos);
     }
@@ -277,6 +287,8 @@ class WorldController extends StateNotifier<WorldState> {
   @override
   void dispose() {
     _locationSubscription?.cancel();
+    _peersSubscription?.cancel();
+    _voiceSubscription?.cancel();
     _heartbeatTimer?.cancel();
     _worldRepository.disconnect();
     super.dispose();

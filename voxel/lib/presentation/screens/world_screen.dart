@@ -221,7 +221,26 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
       );
       return d < 30.0;
     });
-    final isTalking = voiceStateAsync.value?.isTalking ?? false; // Now depends on voiceStateProvider
+    final voiceState = voiceStateAsync.value;
+    final isTalking = voiceState?.isTalking ?? false; 
+    final connectedIds = voiceState?.connectedUserIds ?? {};
+    
+    // Map IDs to names
+    final connectedNames = peers
+        .where((p) => connectedIds.contains(p.userId))
+        .map((p) => p.username)
+        .toList();
+
+    String connectionTitle = 'Not near anyone';
+    if (connectedNames.isNotEmpty) {
+      if (connectedNames.length <= 2) {
+        connectionTitle = 'Speaking to: ${connectedNames.join(', ')}';
+      } else {
+        connectionTitle = 'Speaking to: ${connectedNames.take(2).join(', ')}...';
+      }
+    } else if (isNearSomeone) {
+      connectionTitle = 'Connecting...';
+    }
     
     final isCameraAtPlayer = worldState.myPosition != null && 
         (worldState.cameraX - worldState.myPosition!.x).abs() < 200 && 
@@ -276,8 +295,8 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                 const baseSize = 60.0;
                 
                 return AnimatedPositioned(
-                  duration: const Duration(milliseconds: 800),
-                  curve: Curves.easeInOutCubic,
+                  duration: const Duration(milliseconds: 120),
+                  curve: Curves.linear,
                   left: pos.dx - (baseSize / 2 * zoom),
                   top: pos.dy - (baseSize * 2 * zoom), // Unified offset
                   child: Transform.scale(
@@ -671,17 +690,22 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Text(
-                                          isNearSomeone ? 'Proximity Voice' : 'Not near anyone',
+                                          connectionTitle,
                                           style: GoogleFonts.outfit(
                                             color: Colors.black,
                                             fontWeight: FontWeight.w900,
                                             fontSize: 14,
                                           ),
                                         ),
-                                        if (isTalking && !isNearSomeone)
+                                        if (isTalking && connectedNames.isEmpty && !isNearSomeone)
                                           Text(
                                             'No one can hear you', 
                                             style: GoogleFonts.outfit(color: Colors.orange[800], fontSize: 10, fontWeight: FontWeight.bold),
+                                          )
+                                        else if (connectedNames.isNotEmpty)
+                                           Text(
+                                            'Live Connection - Snapsnatch Proximity', 
+                                            style: GoogleFonts.outfit(color: const Color(0xFFB452FF), fontSize: 10, fontWeight: FontWeight.bold),
                                           ),
                                       ],
                                     ),

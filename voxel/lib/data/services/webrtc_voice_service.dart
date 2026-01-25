@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../domain/services/voice_chat_service.dart';
 import '../../domain/repositories/world_repository.dart';
 
@@ -24,17 +25,76 @@ class WebRtcVoiceService implements VoiceChatService {
 
   Future<void> _initLocalStream() async {
     try {
+      // Request Microphone Permission
+      final status = await Permission.microphone.request();
+      if (status != PermissionStatus.granted) {
+        debugPrint('❌ Microphone permission denied');
+        _emit(_currentState.copyWith(status: VoiceChatStatus.disconnected));
+        return;
+      }
+
       final Map<String, dynamic> constraints = {
-        'audio': true,
+        'audio': {
+           'echoCancellation': true,
+           'noiseSuppression': true,
+           'autoGainControl': true,
+        },
         'video': false,
       };
+      
+      debugPrint('🎙️ Requesting local media...');
       _localStream = await navigator.mediaDevices.getUserMedia(constraints);
+      
+      // Ensure audio is enabled
+      _localStream!.getAudioTracks().forEach((track) {
+        track.enabled = true;
+        debugPrint('✅ Audio track enabled: ${track.id}');
+      });
+
+      // Ensure audio is routed to speaker by default for voice chat feel
+      if (!kIsWeb) {
+        await Helper.setSpeakerphoneOn(true);
+        debugPrint('🔊 Speakerphone enabled');
+      }
+      
       debugPrint('✅ Local WebRTC audio stream initialized');
       _emit(_currentState.copyWith(status: VoiceChatStatus.connected));
+      
+      _startVoiceActivityMonitor();
     } catch (e) {
       debugPrint('❌ Failed to get local media: $e');
       _emit(_currentState.copyWith(status: VoiceChatStatus.disconnected));
     }
+  }
+
+  Timer? _statsTimer;
+  void _startVoiceActivityMonitor() {
+    _statsTimer?.cancel();
+    _statsTimer = Timer.periodic(const Duration(milliseconds: 200), (timer) async {
+       if (_isDisposed) return;
+       
+       // For "ME" (Local)
+       // Peer connection stats for local are tricky, so we'll just assume true if active 
+       // or look for a way to monitor local track.
+       // For now, let's look at remote connections to see if they are "receiving" levels.
+       
+       bool anyoneTalking = false;
+       for (final pc in _peerConnections.values) {
+         try {
+           final stats = await pc.getStats();
+           for (final report in stats) {
+             if (report.type == 'media-source' && report.values['kind'] == 'audio') {
+                final level = report.values['audioLevel'] ?? 0.0;
+                if (level > 0.01) anyoneTalking = true;
+             }
+           }
+         } catch (_) {}
+       }
+       
+       if (anyoneTalking != _currentState.isTalking) {
+         _emit(_currentState.copyWith(isTalking: anyoneTalking));
+       }
+    });
   }
 
   void _handleSignaling(Map<String, dynamic> signaling) {
