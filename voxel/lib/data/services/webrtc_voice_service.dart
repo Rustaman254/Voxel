@@ -18,9 +18,19 @@ class WebRtcVoiceService implements VoiceChatService {
   
   bool _isDisposed = false;
 
+  final Completer<void> _initCompleter = Completer<void>();
+  bool _isInitializing = false;
+
   WebRtcVoiceService(this._repository, this._currentUserId) {
-    _initLocalStream();
+    _startInitialization();
     _repository.subscribeSignaling().listen(_handleSignaling);
+  }
+
+  Future<void> _startInitialization() async {
+    if (_isInitializing) return;
+    _isInitializing = true;
+    await _initLocalStream();
+    if (!_initCompleter.isCompleted) _initCompleter.complete();
   }
 
   Future<void> _initLocalStream() async {
@@ -38,6 +48,10 @@ class WebRtcVoiceService implements VoiceChatService {
            'echoCancellation': true,
            'noiseSuppression': true,
            'autoGainControl': true,
+           'googEchoCancellation': true,
+           'googAutoGainControl': true,
+           'googNoiseSuppression': true,
+           'googHighpassFilter': true,
         },
         'video': false,
       };
@@ -97,7 +111,7 @@ class WebRtcVoiceService implements VoiceChatService {
     });
   }
 
-  void _handleSignaling(Map<String, dynamic> signaling) {
+  void _handleSignaling(Map<String, dynamic> signaling) async {
     final targetId = signaling['targetId'];
     final senderId = signaling['senderId'];
     final type = signaling['type'];
@@ -105,6 +119,9 @@ class WebRtcVoiceService implements VoiceChatService {
 
     // Only process if it's meant for me
     if (targetId != _currentUserId) return;
+
+    // Ensure we are initialized before handling signaling
+    await _initCompleter.future;
 
     debugPrint('📨 Received WebRTC signaling: $type from $senderId');
 
@@ -202,19 +219,27 @@ class WebRtcVoiceService implements VoiceChatService {
 
   @override
   Future<void> joinGroup(Set<String> userIds) async {
+    await _initCompleter.future;
+    
     // For each "new" user in proximity that isn't connected, initiate connection
     for (final peerId in userIds) {
       if (peerId == _currentUserId) continue;
       if (!_peerConnections.containsKey(peerId)) {
-        debugPrint('🤝 Initiating WebRTC offer to $peerId');
-        final pc = await _getOrCreatePeerConnection(peerId);
-        final offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        
-        _repository.sendSignaling('webrtc_offer', peerId, {
-          'sdp': offer.sdp,
-          'type': offer.type,
-        });
+        // Deterministic Negotiation: Only initiate if my ID is "smaller"
+        // This prevents "Double Offer" conflicts in a mesh network.
+        if (_currentUserId.compareTo(peerId) < 0) {
+          debugPrint('🤝 Initiating WebRTC offer to $peerId');
+          final pc = await _getOrCreatePeerConnection(peerId);
+          final offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          
+          _repository.sendSignaling('webrtc_offer', peerId, {
+            'sdp': offer.sdp,
+            'type': offer.type,
+          });
+        } else {
+          debugPrint('⏳ Waiting for WebRTC offer from $peerId (He is the initiator)');
+        }
       }
     }
     
