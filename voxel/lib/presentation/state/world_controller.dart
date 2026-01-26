@@ -85,7 +85,6 @@ class WorldController extends StateNotifier<WorldState> {
            _worldRepository.updateMyPosition(state.myPosition!);
          }
       });
-      _initLocationTracking();
       _initPeersTracking();
       _initVoiceTracking();
       _startHeartbeat();
@@ -156,11 +155,54 @@ class WorldController extends StateNotifier<WorldState> {
      _worldRepository.updateMyPosition(pos);
   }
 
-  void _initLocationTracking() async {
-    final hasPermission = await _locationService.requestPermission();
-    if (!hasPermission) return;
+  Future<void> enableLocationTracking() async {
+    await _initLocationTracking();
+  }
 
+  Future<void> _initLocationTracking() async {
+    final hasPermission = await _locationService.requestPermission();
+    if (!hasPermission) {
+      debugPrint('📍 Location permission denied!');
+      return;
+    }
+
+    try {
+      debugPrint('📍 Fetching current position...');
+      // Fetch initial position immediately for maps
+      final initialPosition = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.best),
+        timeLimit: const Duration(seconds: 10),
+      );
+      
+      debugPrint('📍 Initial position: ${initialPosition.latitude}, ${initialPosition.longitude}');
+      
+      if (state.myPosition != null) {
+        final current = state.myPosition!;
+        
+        // Map GPS to Virtual X/Y initially too
+        const refLat = -1.28; 
+        const refLong = 36.82;
+        final nextX = 500 + (initialPosition.longitude - refLong) * 50000;
+        final nextY = 500 + (initialPosition.latitude - refLat) * 50000;
+
+        final newPos = current.copyWith(
+          latitude: initialPosition.latitude,
+          longitude: initialPosition.longitude,
+          x: nextX,
+          y: nextY,
+          updatedAt: DateTime.now(),
+        );
+        state = state.copyWith(myPosition: newPos, cameraX: nextX, cameraY: nextY);
+        _worldRepository.updateMyPosition(newPos);
+      }
+    } catch (e) {
+      debugPrint('📍 Error fetching initial location: $e');
+      // If we failed, maybe start the stream anyway and hope it fires later
+    }
+
+    debugPrint('📍 Starting location position stream');
     _locationSubscription = _locationService.getPositionStream().listen((position) {
+      debugPrint('📍 Stream Position: ${position.latitude}, ${position.longitude}');
       if (state.myPosition == null) return;
 
       final current = state.myPosition!;
@@ -220,7 +262,25 @@ class WorldController extends StateNotifier<WorldState> {
   }
 
   void toggleGpsMode() {
-    state = state.copyWith(isGpsMode: !state.isGpsMode);
+    final newMode = !state.isGpsMode;
+    state = state.copyWith(isGpsMode: newMode);
+    
+    // Reset Zoom/Camera when switching modes for better UX
+    if (newMode) {
+      // Switch to Map: Zoom level 15 is standard for street level
+      state = state.copyWith(zoom: 15.0); 
+      // _initLocationTracking(); // REMOVED: User requested manual control only
+    } else {
+      // Switch to Virtual: Zoom level 1.0 is standard
+      state = state.copyWith(zoom: 1.0, cameraX: state.myPosition?.x ?? 500, cameraY: state.myPosition?.y ?? 500);
+      _locationSubscription?.cancel();
+      _locationSubscription = null;
+    }
+    
+    // Force a position sync whenever mode changes
+    if (state.myPosition != null) {
+      _worldRepository.updateMyPosition(state.myPosition!);
+    }
   }
 
   void enterEventWorld(String id) {
@@ -247,7 +307,7 @@ class WorldController extends StateNotifier<WorldState> {
   DateTime _lastPositionUpdate = DateTime.now();
   
   void moveMyAvatar(double dx, double dy) {
-    if (state.myPosition == null) return;
+    if (state.myPosition == null || state.isGpsMode) return; // Block manual move in GPS mode
     
     final scale = 1.0 / state.zoom;
     final current = state.myPosition!;
@@ -260,8 +320,8 @@ class WorldController extends StateNotifier<WorldState> {
     // Always update local state immediately for smooth UI
     state = state.copyWith(myPosition: newPos);
     
-    // Throttle network updates (max 30 per second = 33ms)
-    if (DateTime.now().difference(_lastPositionUpdate).inMilliseconds > 33) {
+    // Throttle network updates (max 10 per second = 100ms)
+    if (DateTime.now().difference(_lastPositionUpdate).inMilliseconds > 100) {
       _lastPositionUpdate = DateTime.now();
       _worldRepository.updateMyPosition(newPos);
     }

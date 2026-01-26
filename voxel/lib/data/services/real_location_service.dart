@@ -9,7 +9,11 @@ class RealLocationService implements LocationService {
 
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      return false;
+      await Geolocator.openLocationSettings();
+      // After opening settings, wait a bit and re-check once
+      await Future.delayed(const Duration(seconds: 2));
+      serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) return false;
     }
 
     permission = await Geolocator.checkPermission();
@@ -31,8 +35,8 @@ class RealLocationService implements LocationService {
   Stream<Position> getPositionStream() {
     return Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 5, // Update every 5 meters
+        accuracy: LocationAccuracy.best,
+        distanceFilter: 5, // Optimized: Only update every 5 meters
       ),
     );
   }

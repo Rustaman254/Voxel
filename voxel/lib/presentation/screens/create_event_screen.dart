@@ -42,7 +42,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
         elevation: 0,
         centerTitle: true,
         title: Text(
-          'POST A VOXLE EVENT',
+          worldState.isGpsMode ? 'POST AN EVENT' : 'CREATE A ROOM',
           style: GoogleFonts.outfit(
             fontWeight: FontWeight.w900,
             color: Colors.white,
@@ -74,8 +74,8 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
             const SizedBox(height: 32),
             _buildFunTextField(
               controller: _titleController,
-              hint: 'Give it a catchy name!',
-              label: 'EVENT TITLE',
+              hint: worldState.isGpsMode ? 'Event Name' : 'Room Name',
+              label: worldState.isGpsMode ? 'EVENT TITLE' : 'ROOM NAME',
               icon: Icons.celebration_rounded,
             ),
             const SizedBox(height: 20),
@@ -92,16 +92,24 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
             _buildFunHeader('WHERE AT?'),
             GestureDetector(
               onTap: () async {
+                // In Room mode, location is fixed to virtual map center or current pos relative to canvas
+                // In Event mode, we open map picker
+                if (!worldState.isGpsMode) {
+                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Rooms are placed at your current virtual location!')));
+                   return;
+                }
+                
                 final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (c) => VoxelPickerScreen(
-                      initialX: _customX ?? worldState.myPosition?.x ?? 500,
-                      initialY: _customY ?? worldState.myPosition?.y ?? 500,
+                      initialX: _customX ?? worldState.myPosition?.latitude ?? -1.2921,
+                      initialY: _customY ?? worldState.myPosition?.longitude ?? 36.8219,
+                      voxelTheme: _selectedTheme,
                     ),
                   ),
                 );
-                if (result is Offset) {
+                if (result is Offset) { // Reuse Offset for LatLng logic simply for now or update picker
                   setState(() {
                     _customX = result.dx;
                     _customY = result.dy;
@@ -154,7 +162,9 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Voxel: ${(_customX ?? worldState.myPosition?.x ?? 500).toStringAsFixed(1)}, ${(_customY ?? worldState.myPosition?.y ?? 500).toStringAsFixed(1)}',
+                            worldState.isGpsMode 
+                               ? 'Lat/Long: ${(_customX ?? worldState.myPosition?.latitude ?? 0).toStringAsFixed(4)}, ${(_customY ?? worldState.myPosition?.longitude ?? 0).toStringAsFixed(4)}'
+                               : 'Virtual: ${(_customX ?? worldState.myPosition?.x ?? 500).toStringAsFixed(0)}, ${(_customY ?? worldState.myPosition?.y ?? 500).toStringAsFixed(0)}',
                             style: GoogleFonts.outfit(
                               color: Colors.white.withOpacity(0.9),
                               fontSize: 13,
@@ -181,8 +191,8 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                 onPressed: () {
                   if (_titleController.text.isEmpty || user == null) return;
                   
-                  final targetX = _customX ?? worldState.myPosition?.x ?? 500;
-                  final targetY = _customY ?? worldState.myPosition?.y ?? 500;
+                  final targetX = _customX ?? (worldState.isGpsMode ? (worldState.myPosition?.latitude ?? 0) : (worldState.myPosition?.x ?? 500));
+                  final targetY = _customY ?? (worldState.isGpsMode ? (worldState.myPosition?.longitude ?? 0) : (worldState.myPosition?.y ?? 500));
                   
                   ref.read(eventProvider.notifier).addEvent(
                     _titleController.text,

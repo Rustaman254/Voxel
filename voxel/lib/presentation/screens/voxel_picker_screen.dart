@@ -2,15 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../state/world_controller.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import '../painters/world_painter.dart';
+import '../../domain/entities/avatar_position.dart';
 
 class VoxelPickerScreen extends ConsumerStatefulWidget {
   final double initialX;
   final double initialY;
+  final String? voxelTheme;
 
   const VoxelPickerScreen({
     super.key, 
     required this.initialX, 
     required this.initialY,
+    this.voxelTheme,
   });
 
   @override
@@ -53,50 +59,80 @@ class _VoxelPickerScreenState extends ConsumerState<VoxelPickerScreen> {
           final centerX = constraints.maxWidth / 2;
           final centerY = constraints.maxHeight / 2;
 
-          return GestureDetector(
-            onPanUpdate: (details) {
-              setState(() {
-                _pickedX -= details.delta.dx / _zoom;
-                _pickedY -= details.delta.dy / _zoom;
-              });
-            },
-            onScaleUpdate: (details) {
-              setState(() {
-                _zoom *= details.scale;
-                _zoom = _zoom.clamp(0.1, 5.0);
-              });
-            },
-            child: Container(
+            return Container(
               color: Colors.grey[100],
               child: Stack(
                 children: [
-                  // SIMPLE GRID REPRESENTATION
-                  CustomPaint(
-                    painter: _MapPainter(
-                      centerX: centerX,
-                      centerY: centerY,
-                      offsetX: _pickedX,
-                      offsetY: _pickedY,
-                      zoom: _zoom,
-                    ),
-                    size: Size.infinite,
-                  ),
+                   // SWITCH: Virtual Grid vs Real Map
+                   if (_isRealMapMode())
+                      FlutterMap(
+                        options: MapOptions(
+                          initialCenter: LatLng(_pickedX, _pickedY),
+                          initialZoom: 15,
+                          onPositionChanged: (pos, hasGesture) {
+                             if (hasGesture && pos.center != null) {
+                               setState(() {
+                                 _pickedX = pos.center!.latitude;
+                                 _pickedY = pos.center!.longitude;
+                               });
+                             }
+                          },
+                        ),
+                        children: [
+                           TileLayer(
+                              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                              userAgentPackageName: 'com.voxel.app',
+                           ),
+                        ],
+                      )
+                   else
+                      GestureDetector(
+                        onPanUpdate: (details) {
+                          setState(() {
+                            _pickedX -= details.delta.dx / _zoom;
+                            _pickedY -= details.delta.dy / _zoom;
+                          });
+                        },
+                        onScaleUpdate: (details) {
+                          setState(() {
+                            _zoom *= details.scale;
+                            _zoom = _zoom.clamp(0.1, 5.0);
+                          });
+                        },
+                        child: CustomPaint(
+                          painter: WorldPainter(
+                            cameraX: _pickedX,
+                            cameraY: _pickedY,
+                            zoom: _zoom,
+                            myPosition: null,
+                            peers: [],
+                            voxelTheme: widget.voxelTheme,
+                          ),
+                          size: Size.infinite,
+                        ),
+                      ),
+                      
                   // SELECTION CROSSHAIR
                   Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: const Color(0xFFB452FF), width: 3),
-                          ),
-                          child: const Center(
-                            child: Icon(Icons.add, color: Color(0xFFB452FF), size: 30),
-                          ),
-                        ),
+                         if (_isRealMapMode())
+                            const Icon(Icons.location_on, size: 40, color: Color(0xFFB452FF))
+                         else ...[
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: const Color(0xFFB452FF), width: 3),
+                              ),
+                              child: const Center(
+                                child: Icon(Icons.add, color: Color(0xFFB452FF), size: 30),
+                              ),
+                            ),
+                         ],
+                         
                         const SizedBox(height: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -105,7 +141,9 @@ class _VoxelPickerScreenState extends ConsumerState<VoxelPickerScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            'VOXEL: ${_pickedX.toInt()}, ${_pickedY.toInt()}',
+                            _isRealMapMode() 
+                                ? 'GPS: ${_pickedX.toStringAsFixed(5)}, ${_pickedY.toStringAsFixed(5)}'
+                                : 'VOXEL: ${_pickedX.toInt()}, ${_pickedY.toInt()}',
                             style: GoogleFonts.outfit(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                           ),
                         ),
@@ -125,7 +163,7 @@ class _VoxelPickerScreenState extends ConsumerState<VoxelPickerScreen> {
                         boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
                       ),
                       child: Text(
-                        'Drag the map to set the exact spot for your event!',
+                        _isRealMapMode() ? 'Pan map to pin location' : 'Drag grid to set location',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14),
                       ),
@@ -133,47 +171,15 @@ class _VoxelPickerScreenState extends ConsumerState<VoxelPickerScreen> {
                   ),
                 ],
               ),
-            ),
-          );
+            );
         },
       ),
     );
   }
-}
 
-class _MapPainter extends CustomPainter {
-  final double centerX;
-  final double centerY;
-  final double offsetX;
-  final double offsetY;
-  final double zoom;
-
-  _MapPainter({
-    required this.centerX,
-    required this.centerY,
-    required this.offsetX,
-    required this.offsetY,
-    required this.zoom,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.black.withOpacity(0.05)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
-
-    final step = 50.0 * zoom;
-    
-    // Draw Grid
-    for (double i = (centerX - offsetX * zoom) % step; i < size.width; i += step) {
-      canvas.drawLine(Offset(i, 0), Offset(i, size.height), paint);
-    }
-    for (double i = (centerY - offsetY * zoom) % step; i < size.height; i += step) {
-      canvas.drawLine(Offset(0, i), Offset(size.width, i), paint);
-    }
+  bool _isRealMapMode() {
+    // Heuristic: If coordinates are small (like Lat/Long), assume Map Mode.
+    // Virtual coordinates are usually 500, 500. Lat/Long are -90 to 90 / -180 to 180.
+    return _pickedX.abs() <= 90 && _pickedY.abs() <= 180;
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

@@ -239,6 +239,11 @@ class WebRtcVoiceService implements VoiceChatService {
   Future<void> joinGroup(Set<String> userIds) async {
     await _initCompleter.future;
     
+    // Rigorously enforce speakerphone for voice chat feel
+    if (!kIsWeb) {
+      await Helper.setSpeakerphoneOn(true);
+    }
+    
     // For each "new" user in proximity that isn't connected, initiate connection
     for (final peerId in userIds) {
       if (peerId == _currentUserId) continue;
@@ -279,6 +284,7 @@ class WebRtcVoiceService implements VoiceChatService {
       debugPrint('👋 Closing WebRTC connection to $key');
       _peerConnections[key]?.close();
       _peerConnections.remove(key);
+      _remoteRenderers[key]?.srcObject = null;
       _remoteRenderers[key]?.dispose();
       _remoteRenderers.remove(key);
     }

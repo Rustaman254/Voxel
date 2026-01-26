@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../painters/forest_generator.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../state/auth_notifier.dart';
@@ -7,6 +8,8 @@ import '../state/world_controller.dart';
 import '../state/game_session_provider.dart';
 import '../state/peers_provider.dart';
 import '../painters/world_painter.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart' hide Marker;
+import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
 import '../../domain/services/voice_chat_service.dart';
 
 import 'dart:async';
@@ -21,6 +24,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'game_setup_screen.dart';
 import '../../domain/models/event_model.dart';
 import '../../domain/repositories/world_repository.dart';
+import '../../domain/entities/avatar_position.dart';
 
 class WorldScreen extends ConsumerStatefulWidget {
   const WorldScreen({super.key});
@@ -36,6 +40,9 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
   // Interaction State
   VoxelEvent? _selectedEvent;
   bool _isCollisionPopup = false;
+  
+  // Map Controller for Real World Mode
+  gmaps.GoogleMapController? _googleMapController;
   
   // Voice Visualization - Removed local mic handling
 
@@ -66,7 +73,7 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
               child: Row(
                 children: [
                   Text(
-                    'DISCOVER EVENTS',
+                    ref.watch(worldControllerProvider).isGpsMode ? 'DISCOVER EVENTS' : 'DISCOVER ROOMS',
                     style: GoogleFonts.outfit(
                       fontSize: 24,
                       fontWeight: FontWeight.w900,
@@ -176,6 +183,101 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
       ),
     );
   }
+
+  void _showUserProfile(BuildContext context, AvatarPosition peer) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        height: 400,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+            ),
+            const SizedBox(height: 32),
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: _getProfileColor(peer.userId), width: 4),
+              ),
+              child: CircleAvatar(
+                backgroundImage: peer.avatarUrl.isNotEmpty ? NetworkImage(peer.avatarUrl) : null,
+                backgroundColor: Colors.grey[200],
+                radius: 46,
+                child: peer.avatarUrl.isEmpty 
+                    ? Text(peer.username.isNotEmpty ? peer.username[0].toUpperCase() : '?', style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.grey)) 
+                    : null,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              peer.username,
+              style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.w900),
+            ),
+            Text(
+              '@${peer.userId.length > 8 ? peer.userId.substring(0,8) : peer.userId}', 
+              style: GoogleFonts.outfit(color: Colors.grey, fontSize: 14),
+            ),
+            const SizedBox(height: 32),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildProfileAction(
+                  icon: Icons.chat_bubble_rounded,
+                  label: 'Chat',
+                  color: const Color(0xFF00D2FF), 
+                  onTap: () {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Chat coming soon!')));
+                  },
+                ),
+                _buildProfileAction(
+                  icon: Icons.person_add_rounded,
+                  label: 'Add Friend',
+                  color: const Color(0xFFFFCC00), 
+                  onTap: () {
+                     Navigator.pop(context);
+                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Friend request sent!')));
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileAction({required IconData icon, required String label, required Color color, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 28),
+          ),
+          const SizedBox(height: 8),
+          Text(label, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13)),
+        ],
+      ),
+    );
+  }
   
 
   @override
@@ -195,6 +297,26 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
     final peersAsync = ref.watch(peersStreamProvider);
     final voiceStateAsync = ref.watch(voiceStateProvider);
     final events = ref.watch(eventProvider);
+
+    // Sync Google Maps camera to GPS position
+    ref.listen(worldControllerProvider, (previous, next) {
+      if (next.isGpsMode && next.myPosition != null) {
+        final pos = next.myPosition!;
+        final prevPos = previous?.myPosition;
+        if (pos.latitude != prevPos?.latitude || pos.longitude != prevPos?.longitude) {
+          debugPrint('🎯 Map Sync: Animating to ${pos.latitude}, ${pos.longitude}');
+          _googleMapController?.animateCamera(
+            gmaps.CameraUpdate.newLatLng(gmaps.LatLng(pos.latitude, pos.longitude))
+          );
+        }
+      }
+    });
+
+    // Helper to get valid LatLng
+    gmaps.LatLng getValidLatLng(double lat, double lng) {
+       if (lat == 0 && lng == 0) return const gmaps.LatLng(-1.2921, 36.8219); // Default to Nairobi
+       return gmaps.LatLng(lat, lng);
+    }
     
     // Ensure proximity logic is active
     ref.watch(proximityLogicProvider);
@@ -247,6 +369,7 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
         (worldState.cameraY - worldState.myPosition!.y).abs() < 200;
 
     final isOffline = ref.watch(connectionStatusProvider).value == false;
+    final isLocationMissing = worldState.isGpsMode && (worldState.myPosition?.latitude == 0);
     
     return Scaffold(
       backgroundColor: Colors.white,
@@ -266,54 +389,97 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
           return Stack(
             children: [
               // 1. Game World Grid with Input Handler
-              WorldInputHandler(
-                ref: ref,
-                onZoomStart: () {
-                   _baseZoom = ref.read(worldControllerProvider).zoom;
-                },
-                onZoomUpdate: (scale) {
-                   ref.read(worldControllerProvider.notifier).zoomCamera(_baseZoom * scale / ref.read(worldControllerProvider).zoom);
-                },
-                child: CustomPaint(
-                  size: Size.infinite,
-                  painter: WorldPainter(
-                    cameraX: worldState.cameraX,
-                    cameraY: worldState.cameraY,
-                    zoom: worldState.zoom,
-                    myPosition: worldState.myPosition,
-                    peers: peers,
-                    voxelTheme: activeEvent?.voxelTheme,
-                    isEventWorld: activeEventId != null,
+              // 1. Game World Grid (Virtual) OR Real Map (GPS)
+              if (!worldState.isGpsMode)
+                WorldInputHandler(
+                  ref: ref,
+                  onZoomStart: () {
+                     _baseZoom = ref.read(worldControllerProvider).zoom;
+                  },
+                  onZoomUpdate: (scale) {
+                     ref.read(worldControllerProvider.notifier).zoomCamera(_baseZoom * scale / ref.read(worldControllerProvider).zoom);
+                  },
+                  child: RepaintBoundary(
+                    child: CustomPaint(
+                      size: Size.infinite,
+                      painter: WorldPainter(
+                        cameraX: worldState.cameraX,
+                        cameraY: worldState.cameraY,
+                        zoom: worldState.zoom,
+                        myPosition: worldState.myPosition,
+                        peers: peers,
+                        voxelTheme: activeEvent?.voxelTheme,
+                        isEventWorld: activeEventId != null,
+                      ),
+                    ),
                   ),
+                )
+              else
+                gmaps.GoogleMap(
+                  initialCameraPosition: gmaps.CameraPosition(
+                    target: getValidLatLng(worldState.myPosition?.latitude ?? 0, worldState.myPosition?.longitude ?? 0),
+                    zoom: 15.0,
+                  ),
+                  onMapCreated: (controller) {
+                    debugPrint('🗺️ Google Map Created');
+                    _googleMapController = controller;
+                  },
+                  myLocationEnabled: false, // Use our custom avatar marker instead
+                  myLocationButtonEnabled: false,
+                  zoomControlsEnabled: false,
+                  mapType: gmaps.MapType.normal,
+                  markers: {
+                    // Marker for ME (Avatar)
+                    if (worldState.myPosition != null && (worldState.myPosition!.latitude != 0 || worldState.myPosition!.longitude != 0))
+                      gmaps.Marker(
+                        markerId: const gmaps.MarkerId('me'),
+                        position: gmaps.LatLng(worldState.myPosition!.latitude, worldState.myPosition!.longitude),
+                        infoWindow: const gmaps.InfoWindow(title: 'ME (You)'),
+                      ),
+                    // Markers for Peers
+                    ...filteredPeers.where((p) => p.userId != worldState.myPosition?.userId && p.latitude != 0).map((peer) {
+                      return gmaps.Marker(
+                        markerId: gmaps.MarkerId(peer.userId),
+                        position: gmaps.LatLng(peer.latitude, peer.longitude),
+                        infoWindow: gmaps.InfoWindow(title: peer.username),
+                      );
+                    }),
+                  },
                 ),
-              ),
               
-              // 2. Peers & Events
-              ...filteredPeers.where((p) => p.userId != worldState.myPosition?.userId).map((peer) {
+              // 2. Peers & Events (Only show non-map overlay if in Virtual Mode)
+              if (!worldState.isGpsMode) ...[
+                ...filteredPeers.where((p) => p.userId != worldState.myPosition?.userId).map((peer) {
                 final pos = worldToScreen(peer.x, peer.y);
                 final zoom = worldState.zoom;
                 const baseSize = 60.0;
                 
                 return AnimatedPositioned(
-                  duration: const Duration(milliseconds: 120),
-                  curve: Curves.linear,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOutCubic,
                   left: pos.dx - (baseSize / 2 * zoom),
-                  top: pos.dy - (baseSize * 2 * zoom), // Unified offset
+                  top: pos.dy - (baseSize * 2 * zoom),
                   child: Transform.scale(
                     scale: zoom,
                     alignment: Alignment.bottomCenter,
-                    child: _AvatarCircle(
-                      url: peer.avatarUrl,
-                      isTalking: peer.isTalking,
-                      name: peer.username, 
-                      color: _getProfileColor(peer.userId),
-                      size: baseSize,
+                    child: RepaintBoundary(
+                      child: GestureDetector(
+                        onTap: () => _showUserProfile(context, peer),
+                        child: _AvatarCircle(
+                          url: peer.avatarUrl,
+                          isTalking: peer.isTalking,
+                          name: peer.username, 
+                          color: _getProfileColor(peer.userId),
+                          size: baseSize,
+                        ),
+                      ),
                     ),
                   ),
                 );
               }),
+              ],
               
-              if (activeEventId == null) ...events.map((e) {
+              if (!worldState.isGpsMode && activeEventId == null) ...events.map((e) {
                 final pos = worldToScreen(e.x, e.y);
                 return Positioned(
                   left: pos.dx - 40,
@@ -331,7 +497,7 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
               }),
 
               // 2.5 Event Interaction Bubble
-              if (_selectedEvent != null) ...[
+              if (_selectedEvent != null && !worldState.isGpsMode) ...[
                 (() {
                   final pos = worldToScreen(_selectedEvent!.x, _selectedEvent!.y);
                   final user = ref.read(authProvider).value;
@@ -364,7 +530,7 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
               ],
 
               // 3. My Avatar (Draggable Widget)
-              if (worldState.myPosition != null) ...[
+              if (worldState.myPosition != null && !worldState.isGpsMode) ...[
                 (() {
                   final pos = worldToScreen(worldState.myPosition!.x, worldState.myPosition!.y);
                   final zoom = worldState.zoom;
@@ -399,6 +565,19 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                       alignment: Alignment.bottomCenter,
                       child: GestureDetector(
                         onPanUpdate: (details) {
+                           final zoom = worldState.zoom;
+                           final scale = 1.0 / zoom;
+                           
+                           // Physics Check
+                           if (activeEvent?.voxelTheme == 'FOREST') {
+                              final nextX = worldState.myPosition!.x + (details.delta.dx * scale);
+                              final nextY = worldState.myPosition!.y + (details.delta.dy * scale);
+                              
+                              if (ForestGenerator.isPositionBlocked(nextX, nextY)) {
+                                 return; // Blocked by tree/rock
+                              }
+                           }
+                           
                            ref.read(worldControllerProvider.notifier).moveMyAvatar(details.delta.dx, details.delta.dy);
                         },
                         onPanEnd: (_) {
@@ -430,11 +609,33 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                     child: Row(
                       children: [
-                        // DISCOVER BUTTON TOP LEFT
-                        _CircleActionButton(
-                          icon: Icons.search,
-                          onPressed: () => _showEventDiscovery(context, ref, events),
-                        ),
+                        // NAVIGATION & TITLE
+                        if (activeEventId != null && !worldState.isGpsMode)
+                          _CircleActionButton(
+                            icon: Icons.arrow_back_ios_new,
+                            onPressed: () => ref.read(worldControllerProvider.notifier).exitEventWorld(),
+                          )
+                        else
+                          _CircleActionButton(
+                            icon: Icons.search,
+                            onPressed: () => _showEventDiscovery(context, ref, events),
+                          ),
+
+                        if (activeEventId != null && activeEvent != null && !worldState.isGpsMode) ...[
+                           const SizedBox(width: 12),
+                           Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                 color: Colors.white,
+                                 borderRadius: BorderRadius.circular(20),
+                                 boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10)],
+                              ),
+                              child: Text(
+                                 activeEvent.title.toUpperCase(),
+                                 style: GoogleFonts.outfit(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1),
+                              ),
+                           ),
+                        ],
                         const Spacer(),
                         // PROFILE SECTION TOP RIGHT
                         Container(
@@ -456,9 +657,14 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                                  ),
                                ),
                                const SizedBox(width: 10),
-                               Text(
-                                 ref.watch(authProvider).value?.displayName ?? 'User',
-                                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14),
+                               ConstrainedBox(
+                                 constraints: const BoxConstraints(maxWidth: 100),
+                                 child: Text(
+                                   ref.watch(authProvider).value?.displayName ?? 'User',
+                                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14),
+                                   overflow: TextOverflow.ellipsis,
+                                   maxLines: 1,
+                                 ),
                                ),
                                const SizedBox(width: 8),
                                IconButton(
@@ -735,6 +941,22 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                       label: worldState.isGpsMode ? 'GPS ON' : 'GPS OFF',
                     ),
                     const SizedBox(height: 16),
+                    // LOCATE ME (Manual Trigger)
+                    if (worldState.isGpsMode) ...[
+                      _buildSideButton(
+                        icon: Icons.my_location,
+                        color: Colors.white,
+                        iconColor: Colors.black87,
+                        onTap: () async {
+                           // We need to expose a way to trigger permission manually.
+                           // Actually, let's just make a public method exposing _initLocationTracking logic or similar.
+                           // For now, I'll assume we add `enableLocationTracking` to WorldController.
+                           await ref.read(worldControllerProvider.notifier).enableLocationTracking();
+                        },
+                        label: 'LOCATE',
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                     // PLAY WITH FRIENDS
                     _buildSideButton(
                       icon: Icons.sports_esports_rounded,
@@ -743,28 +965,86 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                       label: 'PLAY',
                     ),
                     const SizedBox(height: 16),
-                    // ADD EVENT
+                    // ADD EVENT / ROOM
                     _buildSideButton(
-                      icon: Icons.add_location_alt_rounded,
+                      icon: worldState.isGpsMode ? Icons.add_location_alt_rounded : Icons.add_home_work_rounded,
                       color: const Color(0xFFFF5E9B),
                       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const CreateEventScreen())),
-                      label: 'EVENT',
+                      label: worldState.isGpsMode ? 'EVENT' : 'ROOM',
                     ),
                     const SizedBox(height: 16),
                     // RECENTER CAMERA (Bottom of Create Event)
-                    if (worldState.myPosition != null && 
-                        ((worldState.cameraX - worldState.myPosition!.x).abs() > 100 || 
-                         (worldState.cameraY - worldState.myPosition!.y).abs() > 100))
+                    if (worldState.myPosition != null) // Always show recenter if we have a position
                       _buildSideButton(
                         icon: Icons.my_location,
                         color: Colors.white,
                         iconColor: Colors.black87,
-                        onTap: () => ref.read(worldControllerProvider.notifier).recenterCamera(),
+                        onTap: () {
+                           if (worldState.isGpsMode) {
+                              if (worldState.myPosition != null) {
+                                  _googleMapController?.animateCamera(
+                                    gmaps.CameraUpdate.newLatLngZoom(
+                                      gmaps.LatLng(worldState.myPosition!.latitude, worldState.myPosition!.longitude), 
+                                      15.0
+                                    ),
+                                  );
+                              }
+                           } else {
+                              ref.read(worldControllerProvider.notifier).recenterCamera();
+                           }
+                        },
                         label: 'CENTER',
                       ),
                   ],
                 ),
               ),
+
+              // Location Status Overlay
+              if (isLocationMissing)
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.black.withOpacity(0.4),
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(24),
+                        margin: const EdgeInsets.symmetric(horizontal: 40),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const CircularProgressIndicator(color: Color(0xFFB452FF)),
+                            const SizedBox(height: 20),
+                            Text(
+                              'FINDING YOU...',
+                              style: GoogleFonts.outfit(fontWeight: FontWeight.w900, fontSize: 18),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Please make sure GPS is ON and you have granted permissions.',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.outfit(color: Colors.grey, fontSize: 13),
+                            ),
+                            const SizedBox(height: 20),
+                            ElevatedButton(
+                              onPressed: () {
+                                 ref.read(worldControllerProvider.notifier).toggleGpsMode(); // Toggle off/on to retry
+                                 ref.read(worldControllerProvider.notifier).toggleGpsMode();
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFB452FF),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                              ),
+                              child: const Text('RETRY'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           );
         }

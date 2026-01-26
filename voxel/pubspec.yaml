@@ -46,6 +46,10 @@ dependencies:
   audioplayers: ^6.1.0
   flutter_sound: ^9.20.5
   flutter_webrtc: ^1.2.1
+  flutter_map: ^8.2.2
+  latlong2: ^0.9.1
+  google_maps_flutter: ^2.5.3
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:
