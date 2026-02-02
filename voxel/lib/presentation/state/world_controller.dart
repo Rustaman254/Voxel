@@ -248,6 +248,7 @@ class WorldController extends StateNotifier<WorldState> {
         updatedAt: DateTime.now(),
         // Visibility: If GPS is off, we're invisible to others but can see ourselves
         isVisible: state.isGpsMode ? state.isVisibleOnMap : false,
+        heading: newHeading >= 0 && newHeading <= 360 ? newHeading : current.heading, // Sync heading to all users
       );
       
       state = state.copyWith(myPosition: newPos);

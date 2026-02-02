@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/io.dart';
@@ -32,10 +31,9 @@ class SocketWorldRepository implements WorldRepository {
   int _reconnectAttempts = 0;
   Timer? _reconnectTimer;
   bool _isConnecting = false;
+  Timer? _heartbeatTimer; // Ping/pong heartbeat timer
   
-  // Snapchat-like smooth movement settings
-  static const Duration _syncInterval = Duration(milliseconds: 100);
-  static const Duration _glideDuration = Duration(milliseconds: 800);
+  // Note: Movement settings reserved for future use
   
   @override
   Future<void> connect(String userId) async {
@@ -99,6 +97,18 @@ class SocketWorldRepository implements WorldRepository {
       _channel!.stream.listen(
         (message) {
           debugPrint('📨 Received message: $message');
+          // Handle ping/pong messages for heartbeat
+          if (message is String) {
+            if (message == 'ping' || message.contains('"type":"ping"')) {
+              _send({'type': 'pong'});
+              return;
+            }
+          } else if (message is Map) {
+            if (message['type'] == 'ping') {
+              _send({'type': 'pong'});
+              return;
+            }
+          }
           _handleMessage(message);
         },
         onError: (error) {
@@ -111,6 +121,9 @@ class SocketWorldRepository implements WorldRepository {
         },
         cancelOnError: false,
       );
+
+      // Start heartbeat/ping mechanism (send ping every 30 seconds)
+      _startHeartbeat();
 
       // Send initial connection message if your server expects it
       Future.delayed(Duration(milliseconds: 500), () {
@@ -140,6 +153,7 @@ class SocketWorldRepository implements WorldRepository {
     debugPrint('🔌 _handleDisconnect called. Was connected: $_isConnected');
     _isConnected = false;
     _statusController.add(false);
+    _heartbeatTimer?.cancel(); // Stop heartbeat on disconnect
     _channel?.sink.close();
     _channel = null;
     
@@ -230,6 +244,7 @@ class SocketWorldRepository implements WorldRepository {
     final lng = (data['longitude'] as num?)?.toDouble() ?? 0.0;
     final isTalking = data['isTalking'] as bool? ?? false;
     final isVisible = data['isVisible'] as bool? ?? true; // Default to visible
+    final heading = (data['heading'] as num?)?.toDouble() ?? 0.0;
     
     final pos = AvatarPosition(
       userId: userId,
@@ -242,6 +257,7 @@ class SocketWorldRepository implements WorldRepository {
       longitude: lng,
       isTalking: isTalking,
       isVisible: isVisible,
+      heading: heading,
     );
     
     _peers[userId] = pos;
@@ -252,9 +268,28 @@ class SocketWorldRepository implements WorldRepository {
     _positionController.add(_peers.values.toList());
   }
 
+  void _startHeartbeat() {
+    _heartbeatTimer?.cancel();
+    // Send ping every 30 seconds to keep connection alive (prevents phone from killing WebSocket)
+    _heartbeatTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      if (_isConnected && _channel != null) {
+        try {
+          _send({'type': 'ping'});
+          debugPrint('💓 Heartbeat ping sent');
+        } catch (e) {
+          debugPrint('❌ Heartbeat ping failed: $e');
+          _handleDisconnect();
+        }
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+
   @override
   Future<void> disconnect() async {
     _reconnectTimer?.cancel();
+    _heartbeatTimer?.cancel();
     _lastUserId = null;
     await _channel?.sink.close();
     _channel = null;
