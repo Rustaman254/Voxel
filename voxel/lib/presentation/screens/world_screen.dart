@@ -720,18 +720,23 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                               );
                             }),
                         // Event Markers (Map Pin Style)
-                        ...filteredEvents.map((event) {
+                        ...filteredEvents.where((event) {
+                          // Only show events with valid coordinates
+                          return event.latitude != 0 && event.longitude != 0;
+                        }).map((event) {
                           return Marker(
                             point: LatLng(event.latitude, event.longitude),
                             width: 50,
                             height: 60,
                             alignment: Alignment.topCenter,
-                            child: GestureDetector(
-                              onTap: () {
-                                // Show event information dialog in GPS mode
-                                _showEventInfoDialog(context, event);
-                              },
-                              child: _MapPinMarker(event: event),
+                            child: Opacity(
+                              opacity: 0.5,
+                              child: GestureDetector(
+                                onTap: () {
+                                  _showEventInfoDialog(context, event);
+                                },
+                                child: _MapPinMarker(event: event),
+                              ),
                             ),
                           );
                         }),

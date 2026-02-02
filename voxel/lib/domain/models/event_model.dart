@@ -74,25 +74,31 @@ class VoxelEvent extends Equatable {
     'gameId': gameId,
   };
 
-  factory VoxelEvent.fromJson(Map<String, dynamic> json) => VoxelEvent(
-    id: json['id'],
-    title: json['title'],
-    description: json['description'],
-    x: (json['x'] as num).toDouble(),
-    y: (json['y'] as num).toDouble(),
-    latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
-    longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
-    creatorId: json['creatorId'],
-    startTime: DateTime.parse(json['startTime']),
-    eventType: json['eventType'] ?? 'GENERAL',
-    ticketPrice: (json['ticketPrice'] as num?)?.toDouble() ?? 0.0,
-    hasTickets: json['hasTickets'] ?? false,
-    voxelTheme: json['voxelTheme'] ?? 'CLASSIC',
-    attachedGameId: json['attachedGameId'],
-    isGpsEvent: json['isGpsEvent'] ?? false,
-    parentEventId: json['parentEventId'],
-    subEventIds: (json['subEventIds'] as List?)?.map((e) => e.toString()).toList() ?? const [],
-    participantCount: json['participantCount'] ?? 0,
-    gameId: json['gameId'],
-  );
+  factory VoxelEvent.fromJson(Map<String, dynamic> json) {
+    // Map database fields: 'x' and 'y' in DB are actually latitude and longitude (GPS coordinates)
+    final lat = (json['x'] as num?)?.toDouble() ?? (json['latitude'] as num?)?.toDouble() ?? 0.0;
+    final lng = (json['y'] as num?)?.toDouble() ?? (json['longitude'] as num?)?.toDouble() ?? 0.0;
+    
+    return VoxelEvent(
+      id: json['_id'] ?? json['id'],
+      title: json['title'],
+      description: json['description'],
+      x: lat, // GPS latitude
+      y: lng, // GPS longitude
+      latitude: lat,
+      longitude: lng,
+      creatorId: json['creatorId'],
+      startTime: json['startTime'] is String ? DateTime.parse(json['startTime']) : (json['startTime'] as DateTime),
+      eventType: json['eventType'] ?? 'GENERAL',
+      ticketPrice: (json['ticketPrice'] as num?)?.toDouble() ?? 0.0,
+      hasTickets: json['hasTickets'] ?? false,
+      voxelTheme: json['voxelTheme'] ?? 'CLASSIC',
+      attachedGameId: json['attachedGameId'],
+      isGpsEvent: true, // If it has GPS coordinates, it's a GPS event
+      parentEventId: json['parentEventId'],
+      subEventIds: (json['subEventIds'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      participantCount: json['participantCount'] ?? 0,
+      gameId: json['gameId'],
+    );
+  }
 }
