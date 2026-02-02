@@ -10,6 +10,7 @@ class AvatarPosition extends Equatable {
   final double latitude;
   final double longitude;
   final bool isTalking;
+  final bool isVisible; // Whether user wants to be visible on map
 
   const AvatarPosition({
     required this.userId,
@@ -21,6 +22,7 @@ class AvatarPosition extends Equatable {
     this.latitude = 0.0,
     this.longitude = 0.0,
     this.isTalking = false,
+    this.isVisible = true, // Default to visible
   });
 
   AvatarPosition copyWith({
@@ -33,6 +35,7 @@ class AvatarPosition extends Equatable {
     double? latitude,
     double? longitude,
     bool? isTalking,
+    bool? isVisible,
   }) {
     return AvatarPosition(
       userId: userId ?? this.userId,
@@ -44,9 +47,10 @@ class AvatarPosition extends Equatable {
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       isTalking: isTalking ?? this.isTalking,
+      isVisible: isVisible ?? this.isVisible,
     );
   }
 
   @override
-  List<Object?> get props => [userId, username, x, y, updatedAt, avatarUrl, latitude, longitude, isTalking];
+  List<Object?> get props => [userId, username, x, y, updatedAt, avatarUrl, latitude, longitude, isTalking, isVisible];
 }

@@ -229,6 +229,7 @@ class SocketWorldRepository implements WorldRepository {
     final lat = (data['latitude'] as num?)?.toDouble() ?? 0.0;
     final lng = (data['longitude'] as num?)?.toDouble() ?? 0.0;
     final isTalking = data['isTalking'] as bool? ?? false;
+    final isVisible = data['isVisible'] as bool? ?? true; // Default to visible
     
     final pos = AvatarPosition(
       userId: userId,
@@ -240,6 +241,7 @@ class SocketWorldRepository implements WorldRepository {
       latitude: lat,
       longitude: lng,
       isTalking: isTalking,
+      isVisible: isVisible,
     );
     
     _peers[userId] = pos;
@@ -331,6 +333,7 @@ class SocketWorldRepository implements WorldRepository {
         'latitude': position.latitude,
         'longitude': position.longitude,
         'isTalking': position.isTalking,
+        'isVisible': position.isVisible,
       }
     };
     

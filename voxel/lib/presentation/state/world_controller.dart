@@ -22,6 +22,9 @@ class WorldState {
   final bool? _isGpsMode;
   final bool isMuted;
   final bool isManuallyMuted;
+  final bool isVisibleOnMap; // Whether I want to be visible on map
+  final Set<String> trackedUserIds; // Users I want to track specifically
+  final double heading; // Compass heading in degrees (0-360)
   
   bool get isGpsMode => _isGpsMode ?? false;
 
@@ -34,6 +37,9 @@ class WorldState {
     bool? isGpsMode,
     this.isMuted = true,
     this.isManuallyMuted = false,
+    this.isVisibleOnMap = true, // Default to visible
+    this.trackedUserIds = const {}, // Empty set means track all visible users
+    this.heading = 0.0, // Default heading (north)
   }) : _isGpsMode = isGpsMode;
 
   WorldState copyWith({
@@ -45,6 +51,9 @@ class WorldState {
     bool? isGpsMode,
     bool? isMuted,
     bool? isManuallyMuted,
+    bool? isVisibleOnMap,
+    Set<String>? trackedUserIds,
+    double? heading,
   }) {
     return WorldState(
       cameraX: cameraX ?? this.cameraX,
@@ -55,6 +64,9 @@ class WorldState {
       isGpsMode: isGpsMode ?? this.isGpsMode,
       isMuted: isMuted ?? this.isMuted,
       isManuallyMuted: isManuallyMuted ?? this.isManuallyMuted,
+      isVisibleOnMap: isVisibleOnMap ?? this.isVisibleOnMap,
+      trackedUserIds: trackedUserIds ?? this.trackedUserIds,
+      heading: heading ?? this.heading,
     );
   }
 }
@@ -77,7 +89,7 @@ class WorldController extends StateNotifier<WorldState> {
         super(const WorldState()) {
     if (_userId != null) {
       _initMyPosition();
-      _worldRepository.connect(_userId!).then((_) {
+      _worldRepository.connect(_userId).then((_) {
          // CRITICAL: Re-send position after connection is established
          // This makes us visible to everyone else in the global world immediately
          if (state.myPosition != null) {
@@ -93,7 +105,7 @@ class WorldController extends StateNotifier<WorldState> {
 
   void _initVoiceTracking() {
     if (_voiceChatService != null) {
-      _voiceSubscription = _voiceChatService!.state.listen((vState) {
+      _voiceSubscription = _voiceChatService.state.listen((vState) {
          setTalking(vState.isTalking);
       });
     }
@@ -144,12 +156,13 @@ class WorldController extends StateNotifier<WorldState> {
     
      // Start at center
      final pos = AvatarPosition(
-        userId: _userId!,
+        userId: _userId,
         username: _username,
         x: 500,
         y: 500,
         updatedAt: DateTime.now(),
         avatarUrl: _avatarUrl,
+        isVisible: state.isVisibleOnMap,
       );
      state = state.copyWith(myPosition: pos, cameraX: 500, cameraY: 500);
      _worldRepository.updateMyPosition(pos);
@@ -185,13 +198,14 @@ class WorldController extends StateNotifier<WorldState> {
         final nextX = 500 + (initialPosition.longitude - refLong) * 50000;
         final nextY = 500 + (initialPosition.latitude - refLat) * 50000;
 
-        final newPos = current.copyWith(
-          latitude: initialPosition.latitude,
-          longitude: initialPosition.longitude,
-          x: nextX,
-          y: nextY,
-          updatedAt: DateTime.now(),
-        );
+      final newPos = current.copyWith(
+        latitude: initialPosition.latitude,
+        longitude: initialPosition.longitude,
+        x: nextX,
+        y: nextY,
+        updatedAt: DateTime.now(),
+        isVisible: state.isVisibleOnMap,
+      );
         state = state.copyWith(myPosition: newPos, cameraX: nextX, cameraY: nextY);
         _worldRepository.updateMyPosition(newPos);
       }
@@ -220,12 +234,20 @@ class WorldController extends StateNotifier<WorldState> {
         nextY = 500 + (position.latitude - refLat) * 50000;
       }
 
+      // Update heading if available
+      final newHeading = position.heading;
+      if (newHeading >= 0 && newHeading <= 360) {
+        state = state.copyWith(heading: newHeading);
+      }
+
       final newPos = current.copyWith(
         latitude: position.latitude,
         longitude: position.longitude,
         x: nextX,
         y: nextY,
         updatedAt: DateTime.now(),
+        // Visibility: If GPS is off, we're invisible to others but can see ourselves
+        isVisible: state.isGpsMode ? state.isVisibleOnMap : false,
       );
       
       state = state.copyWith(myPosition: newPos);
@@ -269,12 +291,23 @@ class WorldController extends StateNotifier<WorldState> {
     if (newMode) {
       // Switch to Map: Zoom level 15 is standard for street level
       state = state.copyWith(zoom: 15.0); 
-      // _initLocationTracking(); // REMOVED: User requested manual control only
+      // Automatically enable location tracking when GPS mode is turned on
+      _initLocationTracking();
     } else {
       // Switch to Virtual: Zoom level 1.0 is standard
       state = state.copyWith(zoom: 1.0, cameraX: state.myPosition?.x ?? 500, cameraY: state.myPosition?.y ?? 500);
       _locationSubscription?.cancel();
       _locationSubscription = null;
+      
+      // When GPS is turned off, make user invisible to others
+      if (state.myPosition != null) {
+        final newPos = state.myPosition!.copyWith(
+          isVisible: false, // Invisible to others when GPS off
+          updatedAt: DateTime.now(),
+        );
+        state = state.copyWith(myPosition: newPos);
+        _worldRepository.updateMyPosition(newPos);
+      }
     }
     
     // Force a position sync whenever mode changes
@@ -345,6 +378,35 @@ class WorldController extends StateNotifier<WorldState> {
     // Throttle voice status updates slightly too (though less critical)
     // We want this snappy, but not noise
     _worldRepository.updateMyPosition(newPos);
+  }
+
+  void toggleVisibility() {
+    final newVisibility = !state.isVisibleOnMap;
+    state = state.copyWith(isVisibleOnMap: newVisibility);
+    
+    // Update position with new visibility
+    if (state.myPosition != null) {
+      final newPos = state.myPosition!.copyWith(
+        isVisible: newVisibility,
+        updatedAt: DateTime.now(),
+      );
+      state = state.copyWith(myPosition: newPos);
+      _worldRepository.updateMyPosition(newPos);
+    }
+  }
+
+  void toggleTrackUser(String userId) {
+    final newTracked = Set<String>.from(state.trackedUserIds);
+    if (newTracked.contains(userId)) {
+      newTracked.remove(userId);
+    } else {
+      newTracked.add(userId);
+    }
+    state = state.copyWith(trackedUserIds: newTracked);
+  }
+
+  void clearTrackedUsers() {
+    state = state.copyWith(trackedUserIds: {});
   }
   
   @override

@@ -8,22 +8,17 @@ import '../state/world_controller.dart';
 import '../state/game_session_provider.dart';
 import '../state/peers_provider.dart';
 import '../painters/world_painter.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart' hide Marker;
-import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
-import '../../domain/services/voice_chat_service.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
-import 'dart:async';
 import 'dart:math';
-import 'dart:typed_data';
+import 'dart:ui' as ui;
 import '../state/event_notifier.dart';
 import 'create_event_screen.dart';
 import 'event_details_screen.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:record/record.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'game_setup_screen.dart';
 import '../../domain/models/event_model.dart';
-import '../../domain/repositories/world_repository.dart';
 import '../../domain/entities/avatar_position.dart';
 
 class WorldScreen extends ConsumerStatefulWidget {
@@ -41,8 +36,8 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
   VoxelEvent? _selectedEvent;
   bool _isCollisionPopup = false;
   
-  // Map Controller for Real World Mode
-  gmaps.GoogleMapController? _googleMapController;
+  // Map Controller for Real World Mode (OpenStreetMap)
+  final MapController _mapController = MapController();
   
   // Voice Visualization - Removed local mic handling
 
@@ -298,24 +293,25 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
     final voiceStateAsync = ref.watch(voiceStateProvider);
     final events = ref.watch(eventProvider);
 
-    // Sync Google Maps camera to GPS position
+    // Sync OpenStreetMap camera to GPS position
     ref.listen(worldControllerProvider, (previous, next) {
       if (next.isGpsMode && next.myPosition != null) {
         final pos = next.myPosition!;
         final prevPos = previous?.myPosition;
         if (pos.latitude != prevPos?.latitude || pos.longitude != prevPos?.longitude) {
-          debugPrint('🎯 Map Sync: Animating to ${pos.latitude}, ${pos.longitude}');
-          _googleMapController?.animateCamera(
-            gmaps.CameraUpdate.newLatLng(gmaps.LatLng(pos.latitude, pos.longitude))
+          debugPrint('🎯 Map Sync: Moving to ${pos.latitude}, ${pos.longitude}');
+          _mapController.move(
+            LatLng(pos.latitude, pos.longitude),
+            _mapController.camera.zoom,
           );
         }
       }
     });
 
     // Helper to get valid LatLng
-    gmaps.LatLng getValidLatLng(double lat, double lng) {
-       if (lat == 0 && lng == 0) return const gmaps.LatLng(-1.2921, 36.8219); // Default to Nairobi
-       return gmaps.LatLng(lat, lng);
+    LatLng getValidLatLng(double lat, double lng) {
+       if (lat == 0 && lng == 0) return const LatLng(-1.2921, 36.8219); // Default to Nairobi
+       return LatLng(lat, lng);
     }
     
     // Ensure proximity logic is active
@@ -329,9 +325,32 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
         ? events.where((e) => e.id == activeEventId).firstOrNull
         : null;
 
-    final filteredPeers = activeEventId != null
+    // Filter peers based on GPS mode and visibility
+    var filteredPeers = activeEventId != null
         ? peers // In a real app, the backend would filter this, but we'll show all for now or filter by 'event_id' property if exists
         : peers;
+    
+    // In GPS mode: Only show users who have GPS ON (isVisible = true means they have GPS on)
+    // When GPS is off: User is invisible to others but can see themselves
+    if (worldState.isGpsMode) {
+      filteredPeers = filteredPeers.where((p) => 
+        p.isVisible && // Only show users with GPS ON
+        (worldState.trackedUserIds.isEmpty || worldState.trackedUserIds.contains(p.userId)) &&
+        p.latitude != 0 && 
+        p.longitude != 0
+      ).toList();
+    }
+    
+    // Filter events: Only show GPS events when in GPS mode, only show non-GPS events when GPS is off
+    final filteredEvents = events.where((e) {
+      if (worldState.isGpsMode) {
+        // In GPS mode: Show only GPS events with valid coordinates
+        return e.isGpsEvent && e.latitude != 0 && e.longitude != 0;
+      } else {
+        // In virtual mode: Show only non-GPS events
+        return !e.isGpsEvent;
+      }
+    }).toList();
     
     // Proximity logic for UI
     final isNearSomeone = filteredPeers.any((p) {
@@ -415,36 +434,156 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                   ),
                 )
               else
-                gmaps.GoogleMap(
-                  initialCameraPosition: gmaps.CameraPosition(
-                    target: getValidLatLng(worldState.myPosition?.latitude ?? 0, worldState.myPosition?.longitude ?? 0),
-                    zoom: 15.0,
+                FlutterMap(
+                  mapController: _mapController,
+                  options: MapOptions(
+                    initialCenter: getValidLatLng(worldState.myPosition?.latitude ?? 0, worldState.myPosition?.longitude ?? 0),
+                    initialZoom: 15.0,
+                    minZoom: 3.0,
+                    maxZoom: 18.0,
+                    onTap: (tapPosition, point) {
+                      // Handle map taps if needed
+                    },
+                    onMapReady: () {
+                      // Center map on user's position when map is ready
+                      if (worldState.myPosition != null && 
+                          worldState.myPosition!.latitude != 0 && 
+                          worldState.myPosition!.longitude != 0) {
+                        _mapController.move(
+                          LatLng(worldState.myPosition!.latitude, worldState.myPosition!.longitude),
+                          15.0,
+                        );
+                      }
+                    },
                   ),
-                  onMapCreated: (controller) {
-                    debugPrint('🗺️ Google Map Created');
-                    _googleMapController = controller;
-                  },
-                  myLocationEnabled: false, // Use our custom avatar marker instead
-                  myLocationButtonEnabled: false,
-                  zoomControlsEnabled: false,
-                  mapType: gmaps.MapType.normal,
-                  markers: {
-                    // Marker for ME (Avatar)
-                    if (worldState.myPosition != null && (worldState.myPosition!.latitude != 0 || worldState.myPosition!.longitude != 0))
-                      gmaps.Marker(
-                        markerId: const gmaps.MarkerId('me'),
-                        position: gmaps.LatLng(worldState.myPosition!.latitude, worldState.myPosition!.longitude),
-                        infoWindow: const gmaps.InfoWindow(title: 'ME (You)'),
-                      ),
-                    // Markers for Peers
-                    ...filteredPeers.where((p) => p.userId != worldState.myPosition?.userId && p.latitude != 0).map((peer) {
-                      return gmaps.Marker(
-                        markerId: gmaps.MarkerId(peer.userId),
-                        position: gmaps.LatLng(peer.latitude, peer.longitude),
-                        infoWindow: gmaps.InfoWindow(title: peer.username),
-                      );
-                    }),
-                  },
+                  children: [
+                    TileLayer(
+                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'com.example.voxel',
+                      maxZoom: 19,
+                    ),
+                    MarkerLayer(
+                      markers: [
+                        // Marker for ME (Avatar) - Always show so user can see themselves
+                        if (worldState.myPosition != null && 
+                            (worldState.myPosition!.latitude != 0 || worldState.myPosition!.longitude != 0))
+                          Marker(
+                            point: LatLng(worldState.myPosition!.latitude, worldState.myPosition!.longitude),
+                            width: 60,
+                            height: 60,
+                            child: GestureDetector(
+                              onTap: () {
+                                // Show my profile or info
+                              },
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  // Compass arrow showing direction
+                                  if (worldState.heading > 0)
+                                    Transform.rotate(
+                                      angle: (worldState.heading * 3.14159 / 180) - (3.14159 / 2), // Convert to radians and adjust
+                                      child: Container(
+                                        width: 60,
+                                        height: 60,
+                                        child: Icon(
+                                          Icons.arrow_upward,
+                                          color: Colors.white.withOpacity(0.8),
+                                          size: 20,
+                                        ),
+                                      ),
+                                    ),
+                                  // Avatar circle
+                                  Container(
+                                    width: 50,
+                                    height: 50,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFB452FF),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.white, width: 3),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.3),
+                                          blurRadius: 10,
+                                          spreadRadius: 2,
+                                        ),
+                                      ],
+                                    ),
+                                    child: worldState.myPosition!.avatarUrl.isNotEmpty
+                                        ? ClipOval(
+                                            child: Image.network(
+                                              worldState.myPosition!.avatarUrl,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (context, error, stackTrace) {
+                                                return const Icon(Icons.person, color: Colors.white, size: 30);
+                                              },
+                                            ),
+                                          )
+                                        : const Icon(Icons.person, color: Colors.white, size: 30),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        // Markers for Peers (already filtered above)
+                        ...filteredPeers
+                            .where((p) => 
+                              p.userId != worldState.myPosition?.userId
+                            )
+                            .map((peer) {
+                              return Marker(
+                                point: LatLng(peer.latitude, peer.longitude),
+                                width: 50,
+                                height: 50,
+                                child: GestureDetector(
+                                  onTap: () => _showUserProfile(context, peer),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: _getProfileColor(peer.userId),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.white, width: 3),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.3),
+                                          blurRadius: 10,
+                                          spreadRadius: 2,
+                                        ),
+                                      ],
+                                    ),
+                                    child: peer.avatarUrl.isNotEmpty
+                                        ? ClipOval(
+                                            child: Image.network(
+                                              peer.avatarUrl,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (context, error, stackTrace) {
+                                                return Icon(Icons.person, color: Colors.white, size: 30);
+                                              },
+                                            ),
+                                          )
+                                        : Icon(Icons.person, color: Colors.white, size: 30),
+                                  ),
+                                ),
+                              );
+                            }),
+                        // Event Markers (conversation bubble style)
+                        ...filteredEvents.map((event) {
+                          return Marker(
+                            point: LatLng(event.latitude, event.longitude),
+                            width: 80,
+                            height: 80,
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _selectedEvent = event;
+                                  _isCollisionPopup = false;
+                                });
+                              },
+                              child: _EventBubbleMarker(event: event),
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ],
                 ),
               
               // 2. Peers & Events (Only show non-map overlay if in Virtual Mode)
@@ -927,6 +1066,46 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                 ),
               ),
               
+              // 4.5. COMPASS INDICATOR (GPS Mode Only)
+              if (worldState.isGpsMode && worldState.heading > 0)
+                Positioned(
+                  top: 100,
+                  right: 20,
+                  child: Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.9),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 10,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: Transform.rotate(
+                      angle: (worldState.heading * 3.14159 / 180) - (3.14159 / 2), // Convert to radians
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.arrow_upward, color: Colors.red, size: 30),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${worldState.heading.toStringAsFixed(0)}°',
+                            style: GoogleFonts.outfit(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
               // 5. SIDE ACTION BUTTONS (Decluttered)
               Positioned(
                 right: 20,
@@ -941,6 +1120,24 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                       label: worldState.isGpsMode ? 'GPS ON' : 'GPS OFF',
                     ),
                     const SizedBox(height: 16),
+                    // VISIBILITY TOGGLE (Only in GPS mode)
+                    if (worldState.isGpsMode)
+                      _buildSideButton(
+                        icon: worldState.isVisibleOnMap ? Icons.visibility : Icons.visibility_off,
+                        color: worldState.isVisibleOnMap ? Colors.green : Colors.grey[400]!,
+                        onTap: () => ref.read(worldControllerProvider.notifier).toggleVisibility(),
+                        label: worldState.isVisibleOnMap ? 'VISIBLE' : 'HIDDEN',
+                      ),
+                    if (worldState.isGpsMode) const SizedBox(height: 16),
+                    // TRACK USERS (Only in GPS mode)
+                    if (worldState.isGpsMode)
+                      _buildSideButton(
+                        icon: Icons.people,
+                        color: worldState.trackedUserIds.isEmpty ? Colors.blue : const Color(0xFFB452FF),
+                        onTap: () => _showUserTrackingDialog(context, ref, filteredPeers, worldState),
+                        label: worldState.trackedUserIds.isEmpty ? 'TRACK ALL' : 'TRACKING',
+                      ),
+                    if (worldState.isGpsMode) const SizedBox(height: 16),
                     // LOCATE ME (Manual Trigger)
                     if (worldState.isGpsMode) ...[
                       _buildSideButton(
@@ -981,12 +1178,12 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                         iconColor: Colors.black87,
                         onTap: () {
                            if (worldState.isGpsMode) {
-                              if (worldState.myPosition != null) {
-                                  _googleMapController?.animateCamera(
-                                    gmaps.CameraUpdate.newLatLngZoom(
-                                      gmaps.LatLng(worldState.myPosition!.latitude, worldState.myPosition!.longitude), 
-                                      15.0
-                                    ),
+                              if (worldState.myPosition != null && 
+                                  worldState.myPosition!.latitude != 0 && 
+                                  worldState.myPosition!.longitude != 0) {
+                                  _mapController.move(
+                                    LatLng(worldState.myPosition!.latitude, worldState.myPosition!.longitude),
+                                    15.0,
                                   );
                               }
                            } else {
@@ -1092,6 +1289,126 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  void _showUserTrackingDialog(BuildContext context, WidgetRef ref, List<AvatarPosition> peers, WorldState worldState) {
+    showDialog(
+      context: context,
+      builder: (c) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(16),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(30),
+            boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 20)],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'TRACK USERS',
+                style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Select users to track on map. Leave empty to track all visible users.',
+                style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: 300,
+                height: 300,
+                child: peers.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No users nearby',
+                          style: GoogleFonts.outfit(color: Colors.grey),
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: peers.length,
+                        itemBuilder: (context, index) {
+                          final peer = peers[index];
+                          final isTracked = worldState.trackedUserIds.contains(peer.userId);
+                          final isVisible = peer.isVisible;
+                          
+                          if (!isVisible) return const SizedBox.shrink();
+                          
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            decoration: BoxDecoration(
+                              color: isTracked ? const Color(0xFFB452FF).withOpacity(0.1) : Colors.grey[50],
+                              borderRadius: BorderRadius.circular(15),
+                              border: Border.all(
+                                color: isTracked ? const Color(0xFFB452FF) : Colors.grey[300]!,
+                                width: 2,
+                              ),
+                            ),
+                            child: ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: _getProfileColor(peer.userId),
+                                child: Text(
+                                  peer.username.isNotEmpty ? peer.username[0].toUpperCase() : '?',
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              title: Text(
+                                peer.username,
+                                style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+                              ),
+                              subtitle: Text(
+                                '${peer.latitude.toStringAsFixed(4)}, ${peer.longitude.toStringAsFixed(4)}',
+                                style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey),
+                              ),
+                              trailing: Icon(
+                                isTracked ? Icons.check_circle : Icons.radio_button_unchecked,
+                                color: isTracked ? const Color(0xFFB452FF) : Colors.grey,
+                              ),
+                              onTap: () {
+                                ref.read(worldControllerProvider.notifier).toggleTrackUser(peer.userId);
+                                Navigator.pop(c);
+                                _showUserTrackingDialog(context, ref, peers, ref.read(worldControllerProvider));
+                              },
+                            ),
+                          );
+                        },
+                      ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      ref.read(worldControllerProvider.notifier).clearTrackedUsers();
+                      Navigator.pop(c);
+                    },
+                    child: Text(
+                      'TRACK ALL',
+                      style: GoogleFonts.outfit(fontWeight: FontWeight.w900, color: Colors.blue),
+                    ),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(c),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFB452FF),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    ),
+                    child: Text(
+                      'DONE',
+                      style: GoogleFonts.outfit(fontWeight: FontWeight.w900, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -1351,6 +1668,132 @@ class _EventMarker extends StatelessWidget {
       ],
     );
   }
+}
+
+class _EventBubbleMarker extends StatelessWidget {
+  final VoxelEvent event;
+  const _EventBubbleMarker({required this.event});
+
+  // Generate pastel color based on event title
+  Color _getPastelColor(String title) {
+    final hash = title.hashCode;
+    final colors = [
+      const Color(0xFFFFB3BA), // Pastel Pink
+      const Color(0xFFFFDFBA), // Pastel Peach
+      const Color(0xFFFFFBA), // Pastel Yellow
+      const Color(0xFFBAFFC9), // Pastel Green
+      const Color(0xFFBAE1FF), // Pastel Blue
+      const Color(0xFFE0BAFF), // Pastel Purple
+      const Color(0xFFFFBAE0), // Pastel Magenta
+      const Color(0xFFBAFFF0), // Pastel Cyan
+    ];
+    return colors[hash.abs() % colors.length];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pastelColor = _getPastelColor(event.title);
+    final firstLetter = event.title.isNotEmpty ? event.title[0].toUpperCase() : '?';
+    final isHot = event.isHot;
+    
+    return Stack(
+      alignment: Alignment.bottomCenter,
+      children: [
+        // Conversation bubble pointing down
+        CustomPaint(
+          size: const Size(60, 70),
+          painter: _BubblePainter(color: pastelColor),
+        ),
+        // First letter in circle
+        Positioned(
+          top: 8,
+          child: Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: pastelColor,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 3),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 8,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+            child: Center(
+              child: Text(
+                firstLetter,
+                style: GoogleFonts.outfit(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ),
+        // Hot event indicator
+        if (isHot)
+          Positioned(
+            top: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.local_fire_department,
+                color: Colors.white,
+                size: 16,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _BubblePainter extends CustomPainter {
+  final Color color;
+  
+  _BubblePainter({required this.color});
+  
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+    
+    final path = ui.Path();
+    // Main bubble (rounded rectangle)
+    final bubbleRect = ui.RRect.fromRectAndRadius(
+      ui.Rect.fromLTWH(0, 0, size.width, size.height - 10),
+      const Radius.circular(20),
+    );
+    path.addRRect(bubbleRect);
+    
+    // Triangle pointing down (conversation tail)
+    path.moveTo(size.width * 0.3, size.height - 10);
+    path.lineTo(size.width * 0.5, size.height);
+    path.lineTo(size.width * 0.7, size.height - 10);
+    path.close();
+    
+    canvas.drawPath(path, paint);
+    
+    // Border
+    final borderPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    canvas.drawPath(path, borderPaint);
+  }
+  
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class WorldInputHandler extends StatefulWidget {
