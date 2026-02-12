@@ -35,8 +35,8 @@ class RealLocationService implements LocationService {
   Stream<Position> getPositionStream() {
     return Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.best,
-        distanceFilter: 5, // Optimized: Only update every 5 meters
+        accuracy: LocationAccuracy.bestForNavigation, // Highest accuracy for navigation
+        distanceFilter: 0, // Update immediately on any movement for fluid tracking
       ),
     );
   }

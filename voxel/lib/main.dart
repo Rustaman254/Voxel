@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'presentation/state/auth_notifier.dart';
 import 'presentation/screens/login_screen.dart';
 import 'presentation/screens/world_screen.dart';
+import 'presentation/screens/onboarding_screen.dart';
+import 'presentation/screens/splash_screen.dart';
 
 void main() {
   runApp(
@@ -19,7 +21,7 @@ class VoxelApp extends ConsumerWidget {
     final authState = ref.watch(authProvider);
 
     return MaterialApp(
-      title: 'Voxel World',
+      title: 'Voxel',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.light,
@@ -51,11 +53,19 @@ class VoxelApp extends ConsumerWidget {
           if (user != null) {
             return const WorldScreen();
           } else {
-            return const LoginScreen();
+            return const OnboardingScreen();
           }
         },
-        loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
-        error: (err, st) => Scaffold(body: Center(child: Text('Error: $err'))),
+        loading: () => const SplashScreen(),
+        error: (err, st) => Scaffold(
+          backgroundColor: const Color(0xFFB452FF),
+          body: Center(
+            child: Text(
+              'Error: $err',
+              style: GoogleFonts.outfit(color: Colors.white),
+            ),
+          ),
+        ),
       ),
     );
   }

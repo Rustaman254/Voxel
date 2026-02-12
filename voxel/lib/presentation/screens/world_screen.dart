@@ -13,6 +13,8 @@ import 'package:latlong2/latlong.dart';
 
 import 'dart:math';
 import 'dart:ui' as ui;
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../state/event_notifier.dart';
 import 'create_event_screen.dart';
 import 'event_details_screen.dart';
@@ -20,6 +22,9 @@ import 'package:geolocator/geolocator.dart';
 import 'game_setup_screen.dart';
 import '../../domain/models/event_model.dart';
 import '../../domain/entities/avatar_position.dart';
+import '../widgets/discover_events_dialog.dart';
+
+import 'chat_screen.dart';
 
 class WorldScreen extends ConsumerStatefulWidget {
   const WorldScreen({super.key});
@@ -39,6 +44,54 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
   // Map Controller for Real World Mode (OpenStreetMap)
   final MapController _mapController = MapController();
   bool _userManuallyMovedMap = false; // Track if user manually moved the map
+  
+  // Routing
+  List<LatLng> _routePoints = [];
+  bool _isFetchingRoute = false;
+
+  Future<void> _fetchRoute(LatLng destination) async {
+    final myPos = ref.read(worldControllerProvider).myPosition;
+    if (myPos == null) return;
+    
+    setState(() => _isFetchingRoute = true);
+    
+    try {
+      // OSRM Public API (Demo only - use your own server in prod)
+      final url = Uri.parse(
+        'https://router.project-osrm.org/route/v1/driving/'
+        '${myPos.longitude},${myPos.latitude};${destination.longitude},${destination.latitude}'
+        '?overview=full&geometries=geojson'
+      );
+      
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final geometry = data['routes'][0]['geometry'];
+        final coordinates = geometry['coordinates'] as List;
+        
+        setState(() {
+          _routePoints = coordinates.map((c) => LatLng(c[1] as double, c[0] as double)).toList();
+          _isFetchingRoute = false;
+        });
+        
+        // Fit bounds to show route
+        if (_routePoints.isNotEmpty) {
+           final bounds = LatLngBounds.fromPoints(_routePoints);
+           _mapController.fitCamera(CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(50)));
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching route: $e');
+      setState(() => _isFetchingRoute = false);
+      // Fallback: straight line
+      setState(() {
+        _routePoints = [
+          LatLng(myPos.latitude, myPos.longitude),
+          destination
+        ];
+      });
+    }
+  }
 
   // Voice Visualization - Removed local mic handling
 
@@ -47,166 +100,9 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
     WidgetRef ref,
     List<VoxelEvent> events,
   ) {
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: const BoxDecoration(
-          color: Color(0xFFF8F9FA),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
-        ),
-        child: Column(
-          children: [
-            const SizedBox(height: 12),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              child: Row(
-                children: [
-                  Text(
-                    ref.watch(worldControllerProvider).isGpsMode
-                        ? 'DISCOVER EVENTS'
-                        : 'DISCOVER ROOMS',
-                    style: GoogleFonts.outfit(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.black,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFB452FF).withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.explore,
-                      color: Color(0xFFB452FF),
-                      size: 20,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: events.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.event_busy,
-                            size: 48,
-                            color: Colors.grey[300],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No events nearby yet!',
-                            style: GoogleFonts.outfit(
-                              color: Colors.grey[500],
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      itemCount: events.length,
-                      itemBuilder: (context, index) {
-                        final event = events[index];
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(25),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.04),
-                                blurRadius: 15,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
-                          ),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.all(16),
-                            leading: Container(
-                              width: 56,
-                              height: 56,
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFFB452FF),
-                                    Color(0xFF7D22FF),
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: const Icon(
-                                Icons.event_available,
-                                color: Colors.white,
-                                size: 28,
-                              ),
-                            ),
-                            title: Text(
-                              event.title,
-                              style: GoogleFonts.outfit(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 16,
-                              ),
-                            ),
-                            subtitle: Padding(
-                              padding: const EdgeInsets.only(top: 4),
-                              child: Text(
-                                event.description,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.outfit(
-                                  fontSize: 13,
-                                  color: Colors.black54,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                            trailing: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF8F9FA),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(
-                                Icons.arrow_forward_ios,
-                                size: 12,
-                                color: Colors.black38,
-                              ),
-                            ),
-                            onTap: () {
-                              Navigator.pop(context);
-                              ref
-                                  .read(worldControllerProvider.notifier)
-                                  .moveCameraTo(event.x, event.y);
-                            },
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
-      ),
+      builder: (context) => const DiscoverEventsDialog(),
     );
   }
 
@@ -285,8 +181,14 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                   color: const Color(0xFF00D2FF),
                   onTap: () {
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Chat coming soon!')),
+                    Navigator.push(
+                      context, 
+                      MaterialPageRoute(
+                        builder: (c) => ChatScreen(
+                          peerId: peer.userId,
+                          peerName: peer.username,
+                        )
+                      )
                     );
                   },
                 ),
@@ -515,11 +417,11 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                       // Handle map taps if needed
                     },
                     onMapReady: () {
-                      // Center map on user's position only on initial load
-                      if (worldState.myPosition != null &&
+                      // Center map on user's position when GPS is enabled
+                      if (worldState.isGpsMode &&
+                          worldState.myPosition != null &&
                           worldState.myPosition!.latitude != 0 &&
-                          worldState.myPosition!.longitude != 0 &&
-                          !_userManuallyMovedMap) {
+                          worldState.myPosition!.longitude != 0) {
                         _mapController.move(
                           LatLng(
                             worldState.myPosition!.latitude,
@@ -527,6 +429,8 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                           ),
                           15.0,
                         );
+                        // Reset manual movement flag when GPS is connected
+                        _userManuallyMovedMap = false;
                       }
                     },
                     onPositionChanged: (position, hasGesture) {
@@ -543,6 +447,17 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                       userAgentPackageName: 'com.example.voxel',
                       maxZoom: 19,
                     ),
+                    if (_routePoints.isNotEmpty && worldState.isGpsMode)
+                      PolylineLayer(
+                        polylines: <Polyline<Object>>[
+                          Polyline<Object>(
+                            points: _routePoints,
+                            strokeWidth: 5.0,
+                            color: const Color(0xFFB452FF),
+                            pattern: const StrokePattern.dotted(),
+                          ),
+                        ],
+                      ),
                     MarkerLayer(
                       markers: [
                         // Marker for ME (Avatar) - Always show so user can see themselves
@@ -729,14 +644,12 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                             width: 50,
                             height: 60,
                             alignment: Alignment.topCenter,
-                            child: Opacity(
-                              opacity: 0.5,
-                              child: GestureDetector(
-                                onTap: () {
-                                  _showEventInfoDialog(context, event);
-                                },
-                                child: _MapPinMarker(event: event),
-                              ),
+                            child: GestureDetector(
+                              onTap: () {
+                                _fetchRoute(LatLng(event.latitude, event.longitude));
+                                _showEventInfoDialog(context, event);
+                              },
+                              child: _MapPinMarker(event: event),
                             ),
                           );
                         }),
@@ -3127,3 +3040,5 @@ class _SquareInfoBubble extends StatelessWidget {
     );
   }
 }
+
+

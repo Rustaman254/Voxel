@@ -50,6 +50,8 @@ dependencies:
   latlong2: ^0.9.1
   google_maps_flutter: ^2.5.3
   url_launcher: ^6.3.2
+  http: ^1.6.0
+  flutter_secure_storage: ^9.2.2
 
 dev_dependencies:
   flutter_test:
@@ -66,9 +68,9 @@ dev_dependencies:
 flutter_launcher_icons:
   android: "ic_launcher"
   ios: true
-  image_path: "assets/images/app_icon.png"
+  image_path: "assets/images/9a6a8cfa-1cc1-4534-b1e4-dffa7aad421a.png"
   adaptive_icon_background: "#B452FF"
-  adaptive_icon_foreground: "assets/images/app_icon.png"
+  adaptive_icon_foreground: "assets/images/9a6a8cfa-1cc1-4534-b1e4-dffa7aad421a.png"
   remove_alpha_ios: true
 
 # For information on the generic Dart part of this file, see the

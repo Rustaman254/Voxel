@@ -2,7 +2,7 @@ import '../entities/avatar_position.dart';
 
 abstract class WorldRepository {
   /// Connect to the world server
-  Future<void> connect(String userId);
+  Future<void> connect(String userId, {String? token});
 
   /// Disconnect from the world server
   Future<void> disconnect();

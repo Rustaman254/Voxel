@@ -5,7 +5,7 @@ import 'package:voxel/main.dart';
 void main() {
   testWidgets('App builds smoke test', (WidgetTester tester) async {
     await tester.pumpWidget(const ProviderScope(child: VoxelApp()));
-    // Should show login screen initially
-    expect(find.text('VOXEL'), findsOneWidget); 
+    await tester.pumpAndSettle(); // Wait for splash/animations
+    expect(find.text('VOXEL'), findsWidgets); 
   });
 }

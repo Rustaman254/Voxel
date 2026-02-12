@@ -52,6 +52,9 @@ class WebRtcVoiceService implements VoiceChatService {
            'googAutoGainControl': true,
            'googNoiseSuppression': true,
            'googHighpassFilter': true,
+           'googTypingNoiseDetection': true,
+           'googExperimentalEchoCancellation': true,
+           'googExperimentalNoiseSuppression': true,
            // CRITICAL: Disable local audio monitoring
            'audioGainControl': false,
            'audioMirroring': false,
@@ -59,7 +62,7 @@ class WebRtcVoiceService implements VoiceChatService {
         'video': false,
       };
       
-      debugPrint('🎙️ Requesting local media...');
+      debugPrint('🎙️ Requesting local media with high-quality audio...');
       _localStream = await navigator.mediaDevices.getUserMedia(constraints);
       
       // Ensure audio is enabled for transmission only (not playback)
@@ -74,7 +77,7 @@ class WebRtcVoiceService implements VoiceChatService {
         debugPrint('🔊 Speakerphone enabled for remote audio only');
       }
       
-      debugPrint('✅ Local WebRTC audio stream initialized');
+      debugPrint('✅ Local WebRTC audio stream initialized with quality enhancements');
       _emit(_currentState.copyWith(status: VoiceChatStatus.connected));
       
       _startVoiceActivityMonitor();
@@ -173,18 +176,25 @@ class WebRtcVoiceService implements VoiceChatService {
       return _peerConnections[peerId]!;
     }
 
+    // High-quality STUN servers for better connectivity
     final Map<String, dynamic> config = {
       'iceServers': [
         {'url': 'stun:stun.l.google.com:19302'},
         {'url': 'stun:stun1.l.google.com:19302'},
+        {'url': 'stun:stun2.l.google.com:19302'},
+        {'url': 'stun:stun3.l.google.com:19302'},
+        {'url': 'stun:stun4.l.google.com:19302'},
       ]
     };
 
     final pc = await createPeerConnection(config);
     _peerConnections[peerId] = pc;
 
-    // Add local stream
-    _localStream?.getTracks().forEach((track) {
+    // Add local stream with high-quality audio settings
+    _localStream?.getAudioTracks().forEach((track) {
+      // Configure audio track for crystal clear audio
+      final settings = track.getSettings();
+      debugPrint('🎙️ Audio track settings: ${settings.toString()}');
       pc.addTrack(track, _localStream!);
     });
 
@@ -203,7 +213,10 @@ class WebRtcVoiceService implements VoiceChatService {
     };
 
     pc.onConnectionState = (state) {
-      debugPrint('Connection state for $peerId: $state');
+      debugPrint('🔌 Connection state for $peerId: $state');
+      if (state == 'connected') {
+        debugPrint('✅ Audio connection established with $peerId');
+      }
     };
 
     return pc;

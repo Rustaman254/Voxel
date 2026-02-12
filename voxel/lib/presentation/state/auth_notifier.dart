@@ -5,19 +5,43 @@ import '../../data/repositories/auth_repository.dart';
 class AuthNotifier extends StateNotifier<AsyncValue<UserProfile?>> {
   final AuthRepository _authRepository;
 
-  AuthNotifier(this._authRepository) : super(const AsyncData(null));
+  AuthNotifier(this._authRepository) : super(const AsyncLoading()) {
+    checkPersistedUser();
+  }
 
-  Future<void> login(String username, String avatarUrl) async {
-    state = const AsyncLoading();
+  Future<void> checkPersistedUser() async {
     try {
-      final user = await _authRepository.login(username, avatarUrl);
+      final user = await _authRepository.getPersistedUser();
       state = AsyncData(user);
-    } catch (e, st) {
-      state = AsyncError(e, st);
+    } catch (e) {
+      state = const AsyncData(null);
     }
   }
 
-  void logout() {
+  Future<void> login(String email, String password) async {
+    // state = const AsyncLoading(); // Removed to prevent main.dart form rebuilding
+    try {
+      final user = await _authRepository.login(email, password);
+      state = AsyncData(user);
+    } catch (e) {
+      // state = AsyncError(e, st); // Keep state as is (null), but throw
+      rethrow;
+    }
+  }
+  
+  Future<void> signup(String email, String username, String displayName, String avatarUrl, String password) async {
+    // state = const AsyncLoading();
+    try {
+      final user = await _authRepository.signup(email, username, displayName, avatarUrl, password);
+      state = AsyncData(user);
+    } catch (e) {
+      // state = AsyncError(e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> logout() async {
+    await _authRepository.clearSession();
     state = const AsyncData(null);
   }
 }

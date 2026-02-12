@@ -16,7 +16,7 @@ class SocketWorldRepository implements WorldRepository {
   
   // Determine URL based on platform/build config
   // Current Machine IP: 192.168.1.133
-  static const String _defaultWsUrl = 'wss://voxel-nxjg.onrender.com/ws';
+  static const String _defaultWsUrl = 'ws://192.168.1.4:8080/ws';
   final String _wsUrl = const String.fromEnvironment('WS_URL', defaultValue: _defaultWsUrl);
 
   final _statusController = StreamController<bool>.broadcast();
@@ -36,7 +36,7 @@ class SocketWorldRepository implements WorldRepository {
   // Note: Movement settings reserved for future use
   
   @override
-  Future<void> connect(String userId) async {
+  Future<void> connect(String userId, {String? token}) async {
     // CRITICAL: Remove fragment and query params from userId before anything else
     userId = userId.split('#')[0].split('?')[0].trim();
     
@@ -57,18 +57,23 @@ class SocketWorldRepository implements WorldRepository {
       // Clean the base URL
       String base = _wsUrl.trim();
       
-      // Force WSS
-      base = base.replaceFirst('http://', 'wss://').replaceFirst('https://', 'wss://').replaceFirst('ws://', 'wss://');
-      if (!base.startsWith('wss://')) base = 'wss://$base';
+      // Only force WSS if we are not on local
+      if (!base.contains('192.168.') && !base.contains('localhost')) {
+          base = base.replaceFirst('http://', 'wss://').replaceFirst('https://', 'wss://').replaceFirst('ws://', 'wss://');
+          if (!base.startsWith('wss://')) base = 'wss://$base';
+      }
       
       // Remove trailing slash from base
       if (base.endsWith('/')) base = base.substring(0, base.length - 1);
       
       // Clean userId - URL encode it properly
       final cleanUserId = Uri.encodeComponent(userId);
+      final cleanToken = token != null ? Uri.encodeComponent(token) : '';
       
-      // Construct final URL - simpler approach
-      final finalUrl = '$base?userId=$cleanUserId';
+      // Construct final URL - include token if available
+      final finalUrl = token != null 
+          ? '$base?userId=$cleanUserId&token=$cleanToken'
+          : '$base?userId=$cleanUserId';
       
       debugPrint('🔗 Connecting to: $finalUrl');
 

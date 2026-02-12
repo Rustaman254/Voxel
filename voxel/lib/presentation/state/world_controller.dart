@@ -76,6 +76,7 @@ class WorldController extends StateNotifier<WorldState> {
   final LocationService _locationService;
   final VoiceChatService? _voiceChatService;
   final String? _userId;
+  final String? _authToken;
   final String _username;
   final String _avatarUrl;
   StreamSubscription<Position>? _locationSubscription;
@@ -83,13 +84,13 @@ class WorldController extends StateNotifier<WorldState> {
   StreamSubscription<VoiceChatState>? _voiceSubscription;
   Timer? _heartbeatTimer;
 
-  WorldController(this._worldRepository, this._locationService, this._voiceChatService, this._userId, {String username = '', String avatarUrl = ''}) 
+  WorldController(this._worldRepository, this._locationService, this._voiceChatService, this._userId, this._authToken, {String username = '', String avatarUrl = ''}) 
       : _username = username,
         _avatarUrl = avatarUrl, 
         super(const WorldState()) {
     if (_userId != null) {
       _initMyPosition();
-      _worldRepository.connect(_userId).then((_) {
+      _worldRepository.connect(_userId, token: _authToken).then((_) {
          // CRITICAL: Re-send position after connection is established
          // This makes us visible to everyone else in the global world immediately
          if (state.myPosition != null) {
@@ -427,12 +428,14 @@ final worldControllerProvider = StateNotifierProvider<WorldController, WorldStat
   final authState = ref.watch(authProvider);
   final repo = ref.watch(worldRepositoryProvider);
   final locationService = ref.watch(locationServiceProvider);
-  final userId = authState.value?.id;
-  final username = authState.value?.displayName ?? 'User';
-  final avatarUrl = authState.value?.avatarUrl ?? '';
+  final user = authState.value;
+  final userId = user?.id;
+  final authToken = user?.authToken;
+  final username = user?.displayName ?? 'User';
+  final avatarUrl = user?.avatarUrl ?? '';
   final voiceService = ref.watch(voiceChatServiceProvider);
   
-  return WorldController(repo, locationService, voiceService, userId, username: username, avatarUrl: avatarUrl);
+  return WorldController(repo, locationService, voiceService, userId, authToken, username: username, avatarUrl: avatarUrl);
 });
 
 final connectionStatusProvider = StreamProvider<bool>((ref) {

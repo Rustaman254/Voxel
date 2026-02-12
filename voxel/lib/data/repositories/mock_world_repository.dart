@@ -43,8 +43,8 @@ class MockWorldRepository implements WorldRepository {
   }
 
   @override
-  Future<void> connect(String userId) async {
-    // Simulate network delay
+  Future<void> connect(String userId, {String? token}) async {
+    _userId = userId; //Simulate network delay
     await Future.delayed(const Duration(milliseconds: 500));
     _startSimulation();
   }
