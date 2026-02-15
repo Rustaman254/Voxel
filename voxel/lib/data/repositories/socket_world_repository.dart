@@ -15,9 +15,14 @@ class SocketWorldRepository implements WorldRepository {
   final Map<String, AvatarPosition> _peers = {};
   
   // Determine URL based on platform/build config
-  // Current Machine IP: 192.168.1.133
-  static const String _defaultWsUrl = 'ws://192.168.1.4:8080/ws';
-  final String _wsUrl = const String.fromEnvironment('WS_URL', defaultValue: _defaultWsUrl);
+  static String get _defaultWsUrl {
+    if (kIsWeb) return 'ws://localhost:8080/ws';
+    if (defaultTargetPlatform == TargetPlatform.android) return 'ws://192.168.1.4:8080/ws';
+    return 'ws://192.168.1.4:8080/ws';
+  }
+  final String _wsUrl = const String.fromEnvironment('WS_URL', defaultValue: '');
+
+  String get wsUrl => _wsUrl.isNotEmpty ? _wsUrl : _defaultWsUrl;
 
   final _statusController = StreamController<bool>.broadcast();
   final _audioController = StreamController<Map<String, dynamic>>.broadcast();
@@ -25,6 +30,7 @@ class SocketWorldRepository implements WorldRepository {
   final _eventsListController = StreamController<List<dynamic>>.broadcast();
   final _sessionController = StreamController<Map<String, dynamic>>.broadcast();
   final _signalingController = StreamController<Map<String, dynamic>>.broadcast();
+  final _moderationController = StreamController<Map<String, dynamic>>.broadcast();
   
   bool _isConnected = false;
   String? _lastUserId;
@@ -45,7 +51,7 @@ class SocketWorldRepository implements WorldRepository {
     _isConnecting = true;
     _lastUserId = userId;
     
-    if (_wsUrl.isEmpty) {
+    if (wsUrl.isEmpty) {
       debugPrint('❌ WS URL is empty!');
       _isConnecting = false;
       return;
@@ -55,10 +61,10 @@ class SocketWorldRepository implements WorldRepository {
       _reconnectTimer?.cancel();
       
       // Clean the base URL
-      String base = _wsUrl.trim();
+      String base = wsUrl.trim();
       
       // Only force WSS if we are not on local
-      if (!base.contains('192.168.') && !base.contains('localhost')) {
+      if (!base.contains('192.168.') && !base.contains('localhost') && !base.contains('10.0.2.2')) {
           base = base.replaceFirst('http://', 'wss://').replaceFirst('https://', 'wss://').replaceFirst('ws://', 'wss://');
           if (!base.startsWith('wss://')) base = 'wss://$base';
       }
@@ -206,7 +212,7 @@ class SocketWorldRepository implements WorldRepository {
         if (payload is Map<String, dynamic>) {
           _audioController.add(payload);
         }
-      } else if (type == 'event_created') {
+      } else if (type == 'event_created' || type == 'event_updated') {
         if (payload is Map<String, dynamic>) {
           _eventController.add(payload);
         }
@@ -225,12 +231,26 @@ class SocketWorldRepository implements WorldRepository {
           signalingData['type'] = type;
           _signalingController.add(signalingData);
         }
+      } else if (type == 'kicked' || type == 'banned') {
+        if (payload is Map<String, dynamic>) {
+           final moderationData = Map<String, dynamic>.from(payload);
+           moderationData['type'] = type;
+           _moderationController.add(moderationData);
+        }
       }
-      // Handle 'join', 'leave' similarly if server sends them
-      
     } catch (e) {
       debugPrint('Error parsing message: $e');
     }
+  }
+
+  Stream<Map<String, dynamic>> subscribeModeration() => _moderationController.stream;
+
+  void kickUser(String roomId, String targetUserId) {
+    _send({'type': 'kick_user', 'payload': {'roomId': roomId, 'targetUserId': targetUserId}});
+  }
+
+  void banUser(String roomId, String targetUserId) {
+    _send({'type': 'ban_user', 'payload': {'roomId': roomId, 'targetUserId': targetUserId}});
   }
 
   void _updatePeer(Map<String, dynamic> data) {
@@ -419,6 +439,22 @@ class SocketWorldRepository implements WorldRepository {
     });
   }
 
+  @override
+  Future<void> joinEvent(String eventId) async {
+    _send({
+      'type': 'join_event',
+      'payload': {'eventId': eventId}
+    });
+  }
+
+  @override
+  Future<void> leaveEvent(String eventId) async {
+    _send({
+      'type': 'leave_event',
+      'payload': {'eventId': eventId}
+    });
+  }
+
   void _send(Map<String, dynamic> msg) {
     try {
       if (_channel == null) {
@@ -431,5 +467,10 @@ class SocketWorldRepository implements WorldRepository {
     } catch (e) {
       debugPrint('❌ Failed to send WS message: $e');
     }
+  }
+
+  // Public method to send custom messages (e.g., for room join/leave)
+  void sendMessage(Map<String, dynamic> msg) {
+    _send(msg);
   }
 }

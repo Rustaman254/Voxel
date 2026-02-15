@@ -1,163 +1,173 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
-import 'package:permission_handler/permission_handler.dart';
 import '../../domain/services/voice_chat_service.dart';
-import '../../domain/repositories/world_repository.dart';
+import '../repositories/socket_world_repository.dart';
 
-class WebRtcVoiceService implements VoiceChatService {
-  final WorldRepository _repository;
-  final String _currentUserId;
-  
+class WebrtcVoiceService implements VoiceChatService {
+  final SocketWorldRepository _socketRepository;
+  final String _myUserId;
+
   MediaStream? _localStream;
   final Map<String, RTCPeerConnection> _peerConnections = {};
-  final Map<String, RTCVideoRenderer> _remoteRenderers = {}; // Renderers handle audio too
+  final Map<String, MediaStream> _remoteStreams = {};
   
-  final StreamController<VoiceChatState> _stateController = StreamController<VoiceChatState>.broadcast();
+  final _stateController = StreamController<VoiceChatState>.broadcast();
   VoiceChatState _currentState = const VoiceChatState();
-  
-  bool _isDisposed = false;
 
-  final Completer<void> _initCompleter = Completer<void>();
-  bool _isInitializing = false;
+  String? _currentChannelId;
+  bool _isMuted = false;
 
-  WebRtcVoiceService(this._repository, this._currentUserId) {
-    _startInitialization();
-    _repository.subscribeSignaling().listen(_handleSignaling);
+  WebrtcVoiceService(this._socketRepository, this._myUserId) {
+    _initSignaling();
   }
 
-  Future<void> _startInitialization() async {
-    if (_isInitializing) return;
-    _isInitializing = true;
-    await _initLocalStream();
-    if (!_initCompleter.isCompleted) _initCompleter.complete();
-  }
+  void _initSignaling() {
+    _socketRepository.subscribeSignaling().listen((message) {
+      final type = message['type'];
+      final senderId = message['senderId'];
+      final data = message['data'];
 
-  Future<void> _initLocalStream() async {
-    try {
-      // Request Microphone Permission
-      final status = await Permission.microphone.request();
-      if (status != PermissionStatus.granted) {
-        debugPrint('❌ Microphone permission denied');
-        _emit(_currentState.copyWith(status: VoiceChatStatus.disconnected));
-        return;
+      if (senderId == _myUserId) return;
+
+      switch (type) {
+        case 'webrtc_offer':
+          _handleOffer(senderId, data);
+          break;
+        case 'webrtc_answer':
+          _handleAnswer(senderId, data);
+          break;
+        case 'webrtc_ice_candidate':
+          _handleIceCandidate(senderId, data);
+          break;
       }
-
-      final Map<String, dynamic> constraints = {
-        'audio': {
-           'echoCancellation': true,
-           'noiseSuppression': true,
-           'autoGainControl': true,
-           'googEchoCancellation': true,
-           'googAutoGainControl': true,
-           'googNoiseSuppression': true,
-           'googHighpassFilter': true,
-           'googTypingNoiseDetection': true,
-           'googExperimentalEchoCancellation': true,
-           'googExperimentalNoiseSuppression': true,
-           // CRITICAL: Disable local audio monitoring
-           'audioGainControl': false,
-           'audioMirroring': false,
-        },
-        'video': false,
-      };
-      
-      debugPrint('🎙️ Requesting local media with high-quality audio...');
-      _localStream = await navigator.mediaDevices.getUserMedia(constraints);
-      
-      // Ensure audio is enabled for transmission only (not playback)
-      _localStream!.getAudioTracks().forEach((track) {
-        track.enabled = true;
-        debugPrint('✅ Audio track enabled for transmission only: ${track.id}');
-      });
-
-      // Ensure remote audio (not local) is routed to speaker
-      if (!kIsWeb) {
-        await Helper.setSpeakerphoneOn(true);
-        debugPrint('🔊 Speakerphone enabled for remote audio only');
-      }
-      
-      debugPrint('✅ Local WebRTC audio stream initialized with quality enhancements');
-      _emit(_currentState.copyWith(status: VoiceChatStatus.connected));
-      
-      _startVoiceActivityMonitor();
-    } catch (e) {
-      debugPrint('❌ Failed to get local media: $e');
-      _emit(_currentState.copyWith(status: VoiceChatStatus.disconnected));
-    }
-  }
-
-  Timer? _statsTimer;
-  void _startVoiceActivityMonitor() {
-    _statsTimer?.cancel();
-    _statsTimer = Timer.periodic(const Duration(milliseconds: 200), (timer) async {
-       if (_isDisposed) return;
-       
-       // For "ME" (Local)
-       // Peer connection stats for local are tricky, so we'll just assume true if active 
-       // or look for a way to monitor local track.
-       // For now, let's look at remote connections to see if they are "receiving" levels.
-       
-       bool anyoneTalking = false;
-       for (final pc in _peerConnections.values) {
-         try {
-           final stats = await pc.getStats();
-           for (final report in stats) {
-             if (report.type == 'media-source' && report.values['kind'] == 'audio') {
-                final level = report.values['audioLevel'] ?? 0.0;
-                if (level > 0.01) anyoneTalking = true;
-             }
-           }
-         } catch (_) {}
-       }
-       
-       if (anyoneTalking != _currentState.isTalking) {
-         _emit(_currentState.copyWith(isTalking: anyoneTalking));
-       }
     });
   }
 
-  void _handleSignaling(Map<String, dynamic> signaling) async {
-    final targetId = signaling['targetId'];
-    final senderId = signaling['senderId'];
-    final type = signaling['type'];
-    final data = signaling['data'];
+  @override
+  Future<void> joinChannel(String channelId) async {
+    if (_currentChannelId == channelId) return;
+    
+    debugPrint('🎙️ Joining voice channel: $channelId');
+    _currentChannelId = channelId;
+    _updateStatus(VoiceChatStatus.connecting);
 
-    // Only process if it's meant for me
-    if (targetId != _currentUserId) return;
-
-    // Ensure we are initialized before handling signaling
-    await _initCompleter.future;
-
-    debugPrint('📨 Received WebRTC signaling: $type from $senderId');
-
-    switch (type) {
-      case 'webrtc_offer':
-        _handleOffer(senderId, data);
-        break;
-      case 'webrtc_answer':
-        _handleAnswer(senderId, data);
-        break;
-      case 'webrtc_ice_candidate':
-        _handleIceCandidate(senderId, data);
-        break;
+    try {
+      await _initLocalStream();
+      
+      // In a Mesh network, we don't necessarily "join" a channel on a server.
+      // We just start signaling peers in that same logical group.
+      // The server already isolates signaling via SessionID/ChannelID.
+      
+      _updateStatus(VoiceChatStatus.connected);
+      _stateController.add(_currentState.copyWith(channelId: channelId));
+    } catch (e) {
+      debugPrint('❌ Failed to join voice channel: $e');
+      _updateStatus(VoiceChatStatus.disconnected);
     }
   }
 
-  Future<void> _handleOffer(String senderId, dynamic data) async {
-    final pc = await _getOrCreatePeerConnection(senderId);
-    await pc.setRemoteDescription(RTCSessionDescription(data['sdp'], data['type']));
+  @override
+  Future<void> joinGroup(Set<String> userIds) async {
+    // Proximity logic or manual group
+    // For now, we focus on Room channels.
+  }
+
+  @override
+  Future<void> leaveChannel() async {
+    debugPrint('🎙️ Leaving voice channel');
+    for (var pc in _peerConnections.values) {
+      pc.close();
+    }
+    _peerConnections.clear();
+    _remoteStreams.clear();
     
+    _localStream?.getTracks().forEach((track) => track.stop());
+    _localStream = null;
+    
+    _currentChannelId = null;
+    _updateStatus(VoiceChatStatus.disconnected);
+    _stateController.add(const VoiceChatState());
+  }
+
+  @override
+  Stream<VoiceChatState> get state => _stateController.stream;
+
+  @override
+  void setMuted(bool muted) {
+    _isMuted = muted;
+    _localStream?.getAudioTracks().forEach((track) {
+      track.enabled = !muted;
+    });
+    _stateController.add(_currentState.copyWith(isTalking: !muted));
+  }
+
+  @override
+  void sendAudioChunk(List<int> chunk) {
+    // Not used in WebRTC (WebRTC handles stream transmission)
+  }
+
+  Future<void> _initLocalStream() async {
+    if (_localStream != null) return;
+
+    final Map<String, dynamic> constraints = {
+      'audio': true,
+      'video': false,
+    };
+
+    _localStream = await navigator.mediaDevices.getUserMedia(constraints);
+  }
+
+  Future<RTCPeerConnection> _createPeerConnection(String peerId) async {
+    final Map<String, dynamic> configuration = {
+      'iceServers': [
+        {'urls': 'stun:stun.l.google.com:19302'},
+        {'urls': 'stun:stun1.l.google.com:19302'},
+      ]
+    };
+
+    final pc = await createPeerConnection(configuration);
+    
+    _localStream?.getTracks().forEach((track) {
+      pc.addTrack(track, _localStream!);
+    });
+
+    pc.onIceCandidate = (candidate) {
+      _socketRepository.sendSignaling('webrtc_ice_candidate', peerId, {
+        'candidate': candidate.candidate,
+        'sdpMid': candidate.sdpMid,
+        'sdpMLineIndex': candidate.sdpMLineIndex,
+      });
+    };
+
+    pc.onTrack = (event) {
+      if (event.streams.isNotEmpty) {
+        _remoteStreams[peerId] = event.streams[0];
+        _updateConnectedUsers();
+      }
+    };
+
+    _peerConnections[peerId] = pc;
+    return pc;
+  }
+
+  Future<void> _handleOffer(String senderId, dynamic data) async {
+    debugPrint('📨 Received WebRTC Offer from $senderId');
+    final pc = await _createPeerConnection(senderId);
+    
+    await pc.setRemoteDescription(RTCSessionDescription(data['sdp'], data['type']));
     final answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
-    
-    _repository.sendSignaling('webrtc_answer', senderId, {
+
+    _socketRepository.sendSignaling('webrtc_answer', senderId, {
       'sdp': answer.sdp,
       'type': answer.type,
     });
   }
 
   Future<void> _handleAnswer(String senderId, dynamic data) async {
+    debugPrint('📨 Received WebRTC Answer from $senderId');
     final pc = _peerConnections[senderId];
     if (pc != null) {
       await pc.setRemoteDescription(RTCSessionDescription(data['sdp'], data['type']));
@@ -167,187 +177,62 @@ class WebRtcVoiceService implements VoiceChatService {
   Future<void> _handleIceCandidate(String senderId, dynamic data) async {
     final pc = _peerConnections[senderId];
     if (pc != null) {
-      await pc.addCandidate(RTCIceCandidate(data['candidate'], data['sdpMid'], data['sdpMLineIndex']));
+      await pc.addCandidate(RTCIceCandidate(
+        data['candidate'],
+        data['sdpMid'],
+        data['sdpMLineIndex'],
+      ));
     }
   }
 
-  Future<RTCPeerConnection> _getOrCreatePeerConnection(String peerId) async {
-    if (_peerConnections.containsKey(peerId)) {
-      return _peerConnections[peerId]!;
-    }
-
-    // High-quality STUN servers for better connectivity
-    final Map<String, dynamic> config = {
-      'iceServers': [
-        {'url': 'stun:stun.l.google.com:19302'},
-        {'url': 'stun:stun1.l.google.com:19302'},
-        {'url': 'stun:stun2.l.google.com:19302'},
-        {'url': 'stun:stun3.l.google.com:19302'},
-        {'url': 'stun:stun4.l.google.com:19302'},
-      ]
-    };
-
-    final pc = await createPeerConnection(config);
-    _peerConnections[peerId] = pc;
-
-    // Add local stream with high-quality audio settings
-    _localStream?.getAudioTracks().forEach((track) {
-      // Configure audio track for crystal clear audio
-      final settings = track.getSettings();
-      debugPrint('🎙️ Audio track settings: ${settings.toString()}');
-      pc.addTrack(track, _localStream!);
-    });
-
-    pc.onIceCandidate = (candidate) {
-      _repository.sendSignaling('webrtc_ice_candidate', peerId, {
-        'candidate': candidate.candidate,
-        'sdpMid': candidate.sdpMid,
-        'sdpMLineIndex': candidate.sdpMLineIndex,
-      });
-    };
-
-    pc.onTrack = (RTCTrackEvent event) {
-      if (event.streams.isNotEmpty) {
-        _setupRemoteAudio(peerId, event.streams[0]);
-      }
-    };
-
-    pc.onConnectionState = (state) {
-      debugPrint('🔌 Connection state for $peerId: $state');
-      if (state == 'connected') {
-        debugPrint('✅ Audio connection established with $peerId');
-      }
-    };
-
-    return pc;
-  }
-
-  Future<void> _setupRemoteAudio(String peerId, MediaStream stream) async {
-    debugPrint('🔊 Setting up remote audio for $peerId');
+  // Called by RoomController when a new peer is discovered
+  Future<void> initiateCall(String peerId) async {
+    if (_peerConnections.containsKey(peerId)) return;
     
-    // Verify this is NOT our local stream
-    if (stream == _localStream) {
-      debugPrint('⚠️ Prevented local audio loopback!');
+    // Lexicographical rule to avoid race conditions: 
+    // Only the user with the "smaller" ID initiates.
+    if (_myUserId.compareTo(peerId) > 0) {
+      debugPrint('⏳ Waiting for $peerId to initiate call (lexicographical rule)');
       return;
     }
-    
-    final renderer = RTCVideoRenderer();
-    await renderer.initialize();
-    renderer.srcObject = stream;
-    
-    // Ensure audio tracks are enabled for playback
-    stream.getAudioTracks().forEach((track) {
-      track.enabled = true;
-      debugPrint('🔊 Remote audio track enabled: ${track.id}');
-    });
-    
-    _remoteRenderers[peerId] = renderer;
-    debugPrint('✅ Remote audio attached for $peerId');
-  }
 
-  @override
-  Stream<VoiceChatState> get state => _stateController.stream;
-
-  @override
-  Future<void> joinGroup(Set<String> userIds) async {
-    await _initCompleter.future;
+    debugPrint('📞 Initiating WebRTC Call to $peerId');
+    final pc = await _createPeerConnection(peerId);
     
-    // Rigorously enforce speakerphone for voice chat feel
-    if (!kIsWeb) {
-      await Helper.setSpeakerphoneOn(true);
-    }
-    
-    // For each "new" user in proximity that isn't connected, initiate connection
-    for (final peerId in userIds) {
-      if (peerId == _currentUserId) continue;
-      if (!_peerConnections.containsKey(peerId)) {
-        // Deterministic Negotiation: Only initiate if my ID is "smaller"
-        // This prevents "Double Offer" conflicts in a mesh network.
-        if (_currentUserId.compareTo(peerId) < 0) {
-          debugPrint('🤝 Initiating WebRTC offer to $peerId');
-          final pc = await _getOrCreatePeerConnection(peerId);
-          final offer = await pc.createOffer();
-          await pc.setLocalDescription(offer);
-          
-          _repository.sendSignaling('webrtc_offer', peerId, {
-            'sdp': offer.sdp,
-            'type': offer.type,
-          });
-        } else {
-          debugPrint('⏳ Waiting for WebRTC offer from $peerId (He is the initiator)');
-        }
-      }
-    }
-    
-    // Close connections to users no longer in the set
-    _cleanRedundantConnections(userIds);
-    
-    _emit(_currentState.copyWith(connectedUserIds: userIds));
-  }
+    final offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
 
-  void _cleanRedundantConnections(Set<String> currentNearbyIds) {
-    final keysToRemove = <String>[];
-    _peerConnections.forEach((peerId, pc) {
-      if (!currentNearbyIds.contains(peerId)) {
-        keysToRemove.add(peerId);
-      }
-    });
-
-    for (final key in keysToRemove) {
-      debugPrint('👋 Closing WebRTC connection to $key');
-      _peerConnections[key]?.close();
-      _peerConnections.remove(key);
-      _remoteRenderers[key]?.srcObject = null;
-      _remoteRenderers[key]?.dispose();
-      _remoteRenderers.remove(key);
-    }
-  }
-
-  @override
-  Future<void> leaveGroup() async {
-    _cleanRedundantConnections({});
-    _emit(_currentState.copyWith(connectedUserIds: {}));
-  }
-
-  @override
-  void sendAudioChunk(List<int> chunk) {
-    // WebRTC handles audio streaming directly via tracks, 
-    // so manual chunks are not needed here.
-  }
-
-  @override
-  void setMuted(bool muted) {
-    if (_localStream == null) return;
-    
-    _localStream!.getAudioTracks().forEach((track) {
-      track.enabled = !muted;
-      debugPrint(muted ? '🔇 Microphone muted' : '🎙️ Microphone unmuted');
+    _socketRepository.sendSignaling('webrtc_offer', peerId, {
+      'sdp': offer.sdp,
+      'type': offer.type,
     });
   }
 
-  @override
-  Future<void> dispose() async {
-    if (_isDisposed) return;
-    _isDisposed = true;
-    
-    await leaveGroup();
-    await _localStream?.dispose();
-    await _stateController.close();
+  void _updateStatus(VoiceChatStatus status) {
+    _currentState = _currentState.copyWith(status: status);
+    _stateController.add(_currentState);
   }
 
-  void _emit(VoiceChatState state) {
-    if (_isDisposed) return;
-    _currentState = state;
-    _stateController.add(state);
+  void _updateConnectedUsers() {
+    _currentState = _currentState.copyWith(
+      connectedUserIds: _remoteStreams.keys.toSet(),
+    );
+    _stateController.add(_currentState);
   }
 }
 
 extension on VoiceChatState {
-  VoiceChatState copyWith({VoiceChatStatus? status, Set<String>? connectedUserIds, bool? isTalking}) {
+  VoiceChatState copyWith({
+    VoiceChatStatus? status,
+    Set<String>? connectedUserIds,
+    bool? isTalking,
+    String? channelId,
+  }) {
     return VoiceChatState(
       status: status ?? this.status,
       connectedUserIds: connectedUserIds ?? this.connectedUserIds,
       isTalking: isTalking ?? this.isTalking,
+      channelId: channelId ?? this.channelId,
     );
   }
 }

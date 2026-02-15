@@ -11,6 +11,7 @@ import '../../data/repositories/socket_world_repository.dart';
 import 'auth_notifier.dart';
 import 'location_provider.dart';
 import 'peers_provider.dart';
+import 'voice_chat_provider.dart';
 
 // State class for the world view (camera)
 class WorldState {
@@ -155,17 +156,21 @@ class WorldController extends StateNotifier<WorldState> {
   void _initMyPosition() {
     if (_userId == null) return;
     
-     // Start at center
+     // Random spawn position for GPS Off mode (between 200-800 for both x and y)
+     final random = Random();
+     final randomX = 200 + random.nextDouble() * 600; // Random between 200-800
+     final randomY = 200 + random.nextDouble() * 600; // Random between 200-800
+     
      final pos = AvatarPosition(
         userId: _userId,
         username: _username,
-        x: 500,
-        y: 500,
+        x: randomX,
+        y: randomY,
         updatedAt: DateTime.now(),
         avatarUrl: _avatarUrl,
         isVisible: state.isVisibleOnMap,
       );
-     state = state.copyWith(myPosition: pos, cameraX: 500, cameraY: 500);
+     state = state.copyWith(myPosition: pos, cameraX: randomX, cameraY: randomY);
      _worldRepository.updateMyPosition(pos);
   }
 
@@ -428,7 +433,7 @@ final worldControllerProvider = StateNotifierProvider<WorldController, WorldStat
   final authState = ref.watch(authProvider);
   final repo = ref.watch(worldRepositoryProvider);
   final locationService = ref.watch(locationServiceProvider);
-  final user = authState.value;
+  final user = authState.user;
   final userId = user?.id;
   final authToken = user?.authToken;
   final username = user?.displayName ?? 'User';

@@ -20,6 +20,8 @@ class VoxelEvent extends Equatable {
   final List<String> subEventIds; // List of sub-event IDs
   final int participantCount; // Current number of participants
   final String? gameId; // Game tied to this event
+  final bool isPrivate;
+  final List<String> attendeeIds;
 
   const VoxelEvent({
     required this.id,
@@ -41,6 +43,8 @@ class VoxelEvent extends Equatable {
     this.subEventIds = const [],
     this.participantCount = 0,
     this.gameId,
+    this.isPrivate = false,
+    this.attendeeIds = const [],
   });
 
   bool get isHot => participantCount > 10;
@@ -49,7 +53,8 @@ class VoxelEvent extends Equatable {
   List<Object?> get props => [
     id, title, description, x, y, latitude, longitude, creatorId, startTime, 
     eventType, ticketPrice, hasTickets, voxelTheme, attachedGameId,
-    isGpsEvent, parentEventId, subEventIds, participantCount, gameId
+    isGpsEvent, parentEventId, subEventIds, participantCount, gameId,
+    isPrivate, attendeeIds
   ];
 
   Map<String, dynamic> toJson() => {
@@ -72,6 +77,8 @@ class VoxelEvent extends Equatable {
     'subEventIds': subEventIds,
     'participantCount': participantCount,
     'gameId': gameId,
+    'isPrivate': isPrivate,
+    'attendeeIds': attendeeIds,
   };
 
   factory VoxelEvent.fromJson(Map<String, dynamic> json) {
@@ -99,6 +106,8 @@ class VoxelEvent extends Equatable {
       subEventIds: (json['subEventIds'] as List?)?.map((e) => e.toString()).toList() ?? const [],
       participantCount: json['participantCount'] ?? 0,
       gameId: json['gameId'],
+      isPrivate: json['isPrivate'] ?? false,
+      attendeeIds: (json['attendeeIds'] as List?)?.map((e) => e.toString()).toList() ?? const [],
     );
   }
 }

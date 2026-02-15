@@ -19,10 +19,33 @@ class MockVoiceChatService implements VoiceChatService {
   }
 
   @override
+  Future<void> joinChannel(String channelId) async {
+    _emit(VoiceChatState(
+      status: VoiceChatStatus.connecting,
+      connectedUserIds: {},
+      channelId: channelId,
+    ));
+    
+    // Simulate connection time
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    // Simulate some users already in the room
+    final mockUsers = {'user_1', 'user_2'};
+
+    _emit(VoiceChatState(
+      status: VoiceChatStatus.connected,
+      connectedUserIds: mockUsers,
+      channelId: channelId,
+    ));
+    print('VoiceChat: Joined channel $channelId with Mock Users: $mockUsers');
+  }
+
+  @override
   Future<void> joinGroup(Set<String> userIds) async {
     _emit(VoiceChatState(
       status: VoiceChatStatus.connecting,
       connectedUserIds: _currentState.connectedUserIds,
+      channelId: _currentState.channelId,
     ));
     
     // Simulate connection time
@@ -31,17 +54,17 @@ class MockVoiceChatService implements VoiceChatService {
     _emit(VoiceChatState(
       status: VoiceChatStatus.connected,
       connectedUserIds: userIds,
+      channelId: null, // Proximity has no channel ID
     ));
-    print('VoiceChat: Joined group with ${userIds.length} users: $userIds');
+    print('VoiceChat: Joined proximity group with ${userIds.length} users');
   }
 
   @override
-  Future<void> leaveGroup() async {
-     _emit(VoiceChatState(
+  Future<void> leaveChannel() async {
+     _emit(const VoiceChatState(
       status: VoiceChatStatus.disconnected,
-      connectedUserIds: {},
     ));
-    print('VoiceChat: Left group');
+    print('VoiceChat: Left channel/group');
   }
 
   @override

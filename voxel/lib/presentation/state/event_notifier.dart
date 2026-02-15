@@ -20,7 +20,9 @@ class EventNotifier extends StateNotifier<List<VoxelEvent>> {
 
     _repository.subscribeEvents().listen((data) {
       final newEvent = VoxelEvent.fromJson(data);
-      if (!state.any((e) => e.id == newEvent.id)) {
+      if (state.any((e) => e.id == newEvent.id)) {
+        state = state.map((e) => e.id == newEvent.id ? newEvent : e).toList();
+      } else {
         state = [...state, newEvent];
       }
     });
@@ -31,6 +33,7 @@ class EventNotifier extends StateNotifier<List<VoxelEvent>> {
     bool hasTickets = false,
     DateTime? startTime,
     String voxelTheme = 'CLASSIC',
+    bool isPrivate = false,
   }) {
     final newEvent = VoxelEvent(
       id: const Uuid().v4(),
@@ -43,6 +46,7 @@ class EventNotifier extends StateNotifier<List<VoxelEvent>> {
       ticketPrice: ticketPrice,
       hasTickets: hasTickets,
       voxelTheme: voxelTheme,
+      isPrivate: isPrivate,
     );
     
     // Instead of local-only, we send to repo. 
@@ -52,6 +56,15 @@ class EventNotifier extends StateNotifier<List<VoxelEvent>> {
 
   void removeEvent(String id) {
     state = state.where((e) => e.id != id).toList();
+  }
+
+  Future<void> joinEvent(String eventId) async {
+    // Optimistic update could happen here, but we rely on server broadcast for now
+    await _repository.joinEvent(eventId);
+  }
+
+  Future<void> leaveEvent(String eventId) async {
+    await _repository.leaveEvent(eventId);
   }
 }
 

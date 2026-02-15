@@ -66,7 +66,7 @@ class GameSessionNotifier extends StateNotifier<GameSession?> {
 
 final gameSessionProvider = StateNotifierProvider<GameSessionNotifier, GameSession?>((ref) {
   final repo = ref.watch(worldRepositoryProvider) as SocketWorldRepository;
-  final user = ref.watch(authProvider).value;
+  final user = ref.watch(authProvider).user;
   return GameSessionNotifier(repo, user?.id);
 });
 

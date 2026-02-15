@@ -34,9 +34,12 @@ abstract class WorldRepository {
   /// Get my own current cached position
   AvatarPosition? getMyPosition();
 
-  /// Send WebRTC signaling message
-  void sendSignaling(String type, String targetId, dynamic data);
-
   /// Stream of incoming WebRTC signaling messages
   Stream<Map<String, dynamic>> subscribeSignaling();
+
+  /// Join an event (attendance)
+  Future<void> joinEvent(String eventId);
+
+  /// Leave an event
+  Future<void> leaveEvent(String eventId);
 }

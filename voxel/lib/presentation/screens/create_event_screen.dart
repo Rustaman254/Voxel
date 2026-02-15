@@ -18,6 +18,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController(text: '0.00');
   bool _hasTickets = false;
+  bool _isPrivate = false;
   DateTime _selectedDateTime = DateTime.now().add(const Duration(hours: 1));
   String _selectedTheme = 'CLASSIC';
   double? _customX;
@@ -33,7 +34,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
   @override
   Widget build(BuildContext context) {
     final worldState = ref.watch(worldControllerProvider);
-    final user = ref.read(authProvider).value;
+    final user = ref.read(authProvider).user;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA), 
@@ -183,6 +184,8 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
             _buildThemeSelection(),
             const SizedBox(height: 32),
             _buildTicketingSection(),
+            const SizedBox(height: 32),
+            _buildPrivacySection(),
             const SizedBox(height: 48),
             SizedBox(
               width: double.infinity,
@@ -204,6 +207,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                     hasTickets: _hasTickets,
                     startTime: _selectedDateTime,
                     voxelTheme: _selectedTheme,
+                    isPrivate: _isPrivate,
                   );
                   Navigator.pop(context);
                 },
@@ -391,6 +395,61 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                 Text('Set your entry price', style: GoogleFonts.outfit(color: Colors.grey, fontSize: 12)),
               ],
             ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPrivacySection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildFunHeader('PRIVACY'),
+        GestureDetector(
+          onTap: () => setState(() => _isPrivate = !_isPrivate),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(25),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+              border: _isPrivate ? Border.all(color: const Color(0xFFB452FF), width: 2) : null,
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  _isPrivate ? Icons.lock : Icons.public,
+                  color: _isPrivate ? const Color(0xFFB452FF) : Colors.green,
+                ),
+                const SizedBox(width: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _isPrivate ? 'PRIVATE EVENT' : 'PUBLIC EVENT',
+                      style: GoogleFonts.outfit(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    Text(
+                      _isPrivate ? 'Only invited guest can join' : 'Anyone nearby can join',
+                      style: GoogleFonts.outfit(
+                        color: Colors.grey,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                Switch(
+                  value: _isPrivate,
+                  onChanged: (v) => setState(() => _isPrivate = v),
+                  activeColor: const Color(0xFFB452FF),
+                ),
+              ],
+            ),
           ),
         ),
       ],

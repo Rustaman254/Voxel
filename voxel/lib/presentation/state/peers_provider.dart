@@ -6,6 +6,7 @@ import '../../domain/services/voice_chat_service.dart';
 import '../../data/services/webrtc_voice_service.dart';
 import 'world_controller.dart';
 import 'auth_notifier.dart';
+import 'voice_chat_provider.dart';
 
 // Stream of all other users' positions
 final peersStreamProvider = StreamProvider<List<AvatarPosition>>((ref) {
@@ -13,19 +14,6 @@ final peersStreamProvider = StreamProvider<List<AvatarPosition>>((ref) {
   return repo.subscribePositions();
 });
 
-final voiceChatServiceProvider = Provider<VoiceChatService>((ref) {
-  final repo = ref.watch(worldRepositoryProvider);
-  final userId = ref.watch(authProvider).value?.id ?? 'anon';
-  
-  final service = WebRtcVoiceService(repo, userId);
-  
-  // Ensure proper disposal when provider is disposed
-  ref.onDispose(() {
-    service.dispose();
-  });
-  
-  return service;
-});
 
 final voiceStateProvider = StreamProvider<VoiceChatState>((ref) {
   final service = ref.watch(voiceChatServiceProvider);
@@ -92,7 +80,7 @@ final proximityLogicProvider = Provider<void>((ref) {
 
     // Update voice service
     if (next.isEmpty) {
-      voiceService.leaveGroup();
+      voiceService.leaveChannel();
     }
   }, fireImmediately: true);
 });

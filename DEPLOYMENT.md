@@ -45,9 +45,8 @@ Render is ideal for hosting the Go backend.
 1. **Connect Repository**: Create a new **Web Service** on Render and connect your GitHub repository.
 2. **Configuration**:
    - **Environment**: `Go`
-   - **Build Command**: `go build -o server_bin cmd/api/main.go`
-   - **Build Command**: `go build -tags netgo -ldflags '-s -w' -o app`
-   - **Start Command**: `./server_bin`
+    - **Build Command**: `go build -tags netgo -ldflags '-s -w' -o server_bin cmd/api/main.go`
+    - **Start Command**: `./server_bin`
 3. **Environment Variables**:
    Update these in the Render dashboard under **Environment**:
    - `MONGO_URI`: Your MongoDB connection string.

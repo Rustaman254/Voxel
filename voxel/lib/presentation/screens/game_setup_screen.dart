@@ -22,7 +22,7 @@ class _GameSetupScreenState extends ConsumerState<GameSetupScreen> {
   @override
   Widget build(BuildContext context) {
     final events = ref.watch(eventProvider);
-    final user = ref.watch(authProvider).value;
+    final user = ref.watch(authProvider).user;
     final myEvents = events.where((e) => e.creatorId == user?.id).toList();
 
     return Scaffold(

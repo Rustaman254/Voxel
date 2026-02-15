@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../state/auth_notifier.dart';
 import '../utils/toast_service.dart';
+import '../widgets/voxel_avatar.dart';
+import '../../domain/entities/user_profile.dart';
 import 'dart:math';
 
 class RegistrationScreen extends ConsumerStatefulWidget {
@@ -147,7 +149,10 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                             child: ClipOval( // Ensure image is clipped
                               child: Stack(
                                 children: [
-                                  Image.network(url, fit: BoxFit.cover, width: 80, height: 80),
+                                  VoxelAvatar(
+                                    avatarUrl: url,
+                                    radius: 40,
+                                  ),
                                   if (isSelected)
                                     Positioned(
                                       top: 4,
@@ -336,12 +341,26 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
       return;
     }
 
+    // Validate email format
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegex.hasMatch(_emailController.text.trim())) {
+      ToastService.showError(context, 'Please enter a valid email address');
+      return;
+    }
+
+    // Validate username (alphanumeric and underscore only)
+    final usernameRegex = RegExp(r'^[a-zA-Z0-9_]{3,20}$');
+    if (!usernameRegex.hasMatch(_usernameController.text.trim())) {
+      ToastService.showError(context, 'Username must be 3-20 characters (letters, numbers, underscore only)');
+      return;
+    }
+
     if (_passwordController.text.length < 6) {
       ToastService.showError(context, 'Password must be at least 6 characters');
       return;
     }
 
-    final avatarUrl = 'https://api.dicebear.com/9.x/adventurer/png?seed=$_selectedSeed&backgroundColor=transparent';
+    final avatarUrl = 'https://api.dicebear.com/9.x/adventurer/svg?seed=$_selectedSeed&backgroundColor=transparent';
     final username = _usernameController.text.trim();
     final displayName = _displayNameController.text.trim();
     final email = _emailController.text.trim();
@@ -358,11 +377,23 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
             password,
           );
       if (mounted) {
-        Navigator.of(context).pop(); // Go back to login, or main will switch to World
+        ToastService.showSuccess(context, 'Welcome to Voxel! 🌟');
+        // User is automatically logged in after signup, main.dart will navigate to WorldScreen
+        Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
-        ToastService.showError(context, e.toString().replaceAll('Exception: ', ''));
+        String errorMessage = e.toString().replaceAll('Exception: ', '');
+        
+        // Show helpful error messages
+        if (errorMessage.contains('email is already registered')) {
+          ToastService.showError(context, 'This email is already registered. Please login instead.');
+        } else if (errorMessage.contains('username is already taken')) {
+          ToastService.showError(context, 'This username is already taken. Please choose another.');
+        } else {
+          ToastService.showError(context, errorMessage);
+        }
+        
         setState(() => _isLoading = false);
       }
     }

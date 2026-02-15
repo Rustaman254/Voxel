@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../widgets/voxel_avatar.dart';
 import '../painters/forest_generator.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,8 +24,14 @@ import 'game_setup_screen.dart';
 import '../../domain/models/event_model.dart';
 import '../../domain/entities/avatar_position.dart';
 import '../widgets/discover_events_dialog.dart';
+import '../widgets/discover_rooms_dialog.dart';
 
 import 'chat_screen.dart';
+import 'profile_screen.dart';
+import 'room_creation_screen.dart';
+import 'room_details_screen.dart';
+import '../state/room_controller.dart';
+import '../widgets/room_marker.dart';
 
 class WorldScreen extends ConsumerStatefulWidget {
   const WorldScreen({super.key});
@@ -32,8 +39,15 @@ class WorldScreen extends ConsumerStatefulWidget {
   @override
   ConsumerState<WorldScreen> createState() => _WorldScreenState();
 }
-
 class _WorldScreenState extends ConsumerState<WorldScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(roomControllerProvider.notifier).loadRooms();
+    });
+  }
+
   // Base zoom for scaling
   double _baseZoom = 1.0;
 
@@ -107,6 +121,20 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
   }
 
   void _showUserProfile(BuildContext context, AvatarPosition peer) {
+    final myUserId = ref.read(authProvider).user?.id;
+    
+    // If viewing own profile, navigate to profile screen
+    if (peer.userId == myUserId) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const ProfileScreen(),
+        ),
+      );
+      return;
+    }
+    
+    // Otherwise show peer profile modal
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -240,11 +268,6 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
         ],
       ),
     );
-  }
-
-  @override
-  void initState() {
-    super.initState();
   }
 
   @override
@@ -458,12 +481,68 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                           ),
                         ],
                       ),
-                    MarkerLayer(
-                      markers: [
-                        // Marker for ME (Avatar) - Always show so user can see themselves
-                        if (worldState.myPosition != null &&
-                            (worldState.myPosition!.latitude != 0 ||
-                                worldState.myPosition!.longitude != 0))
+                    // Room Markers on GPS Map
+                    if (worldState.isGpsMode)
+                      MarkerLayer(
+                        markers: ref.watch(roomControllerProvider).rooms
+                            .where((room) => room.latitude != 0 && room.longitude != 0)
+                            .map((room) {
+                          return Marker(
+                            point: LatLng(room.latitude, room.longitude),
+                            width: 200,
+                            height: 80,
+                            child: GestureDetector(
+                              onTap: () {
+                                showModalBottomSheet(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  backgroundColor: Colors.transparent,
+                                  builder: (c) => RoomDetailsScreen(room: room),
+                                );
+                              },
+                              child: RoomMarker(
+                                room: room,
+                                onTap: () {
+                                  showModalBottomSheet(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    backgroundColor: Colors.transparent,
+                                    builder: (c) => RoomDetailsScreen(room: room),
+                                  );
+                                },
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    // Event Markers on GPS Map
+                    if (worldState.isGpsMode)
+                      MarkerLayer(
+                        markers: filteredEvents
+                            .where((event) => event.latitude != 0 && event.longitude != 0)
+                            .map((event) {
+                          return Marker(
+                            point: LatLng(event.latitude, event.longitude),
+                            width: 80,
+                            height: 80,
+                            child: GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (c) => EventDetailsScreen(eventId: event.id),
+                                  ),
+                                );
+                              },
+                              child: _EventMarker(event: event),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    // User Position Markers on GPS Map
+                    if (worldState.isGpsMode && worldState.myPosition != null)
+                      MarkerLayer(
+                        markers: [
                           Marker(
                             point: LatLng(
                               worldState.myPosition!.latitude,
@@ -471,193 +550,76 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                             ),
                             width: 60,
                             height: 60,
-                            child: GestureDetector(
-                              onTap: () {
-                                // Show my profile or info
-                              },
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  // Direction arrow (Google Maps style) - behind avatar
-                                  if (worldState.heading > 0)
-                                    Transform.rotate(
-                                      angle:
-                                          (worldState.heading * 3.14159 / 180) -
-                                          (3.14159 / 2),
-                                      child: Container(
-                                        width: 70,
-                                        height: 70,
-                                        child: CustomPaint(
-                                          painter: _DirectionArrowPainter(),
-                                        ),
-                                      ),
-                                    ),
-                                  // Avatar circle with shadow
-                                  Container(
-                                    width: 52,
-                                    height: 52,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFB452FF),
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: Colors.white,
-                                        width: 3.5,
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.4),
-                                          blurRadius: 12,
-                                          spreadRadius: 2,
-                                        ),
-                                        BoxShadow(
-                                          color: const Color(
-                                            0xFFB452FF,
-                                          ).withOpacity(0.3),
-                                          blurRadius: 20,
-                                          spreadRadius: 4,
-                                        ),
-                                      ],
-                                    ),
-                                    child:
-                                        worldState
-                                            .myPosition!
-                                            .avatarUrl
-                                            .isNotEmpty
-                                        ? ClipOval(
-                                            child: Image.network(
-                                              worldState.myPosition!.avatarUrl,
-                                              fit: BoxFit.cover,
-                                              errorBuilder:
-                                                  (context, error, stackTrace) {
-                                                    return const Icon(
-                                                      Icons.person,
-                                                      color: Colors.white,
-                                                      size: 32,
-                                                    );
-                                                  },
-                                            ),
-                                          )
-                                        : const Icon(
-                                            Icons.person,
-                                            color: Colors.white,
-                                            size: 32,
-                                          ),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: const Color(0xFFB452FF),
+                                border: Border.all(color: Colors.white, width: 3),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFFB452FF).withOpacity(0.5),
+                                    blurRadius: 10,
+                                    spreadRadius: 2,
                                   ),
                                 ],
                               ),
+                              child: const Icon(
+                                Icons.person,
+                                color: Colors.white,
+                                size: 30,
+                              ),
                             ),
                           ),
-                        // Markers for Peers (already filtered above) - Google Maps style with direction
-                        ...filteredPeers
-                            .where(
-                              (p) => p.userId != worldState.myPosition?.userId,
-                            )
+                        ],
+                      ),
+                    // Other Users' Position Markers on GPS Map
+                    if (worldState.isGpsMode)
+                      MarkerLayer(
+                        markers: filteredPeers
+                            .where((peer) => 
+                                peer.latitude != 0 && 
+                                peer.longitude != 0 &&
+                                peer.userId != worldState.myPosition?.userId)
                             .map((peer) {
-                              return Marker(
-                                point: LatLng(peer.latitude, peer.longitude),
-                                width: 60,
-                                height: 60,
-                                child: GestureDetector(
-                                  onTap: () => _showUserProfile(context, peer),
-                                  child: Stack(
-                                    alignment: Alignment.center,
-                                    children: [
-                                      // Direction arrow (Google Maps style) - behind avatar
-                                      if (peer.heading > 0)
-                                        Transform.rotate(
-                                          angle:
-                                              (peer.heading * 3.14159 / 180) -
-                                              (3.14159 / 2),
-                                          child: Container(
-                                            width: 70,
-                                            height: 70,
-                                            child: CustomPaint(
-                                              painter: _DirectionArrowPainter(),
-                                            ),
-                                          ),
-                                        ),
-                                      // Avatar circle with shadow
-                                      Container(
-                                        width: 52,
-                                        height: 52,
-                                        decoration: BoxDecoration(
-                                          color: _getProfileColor(peer.userId),
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: Colors.white,
-                                            width: 3.5,
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withOpacity(
-                                                0.4,
-                                              ),
-                                              blurRadius: 12,
-                                              spreadRadius: 2,
-                                            ),
-                                            BoxShadow(
-                                              color: _getProfileColor(
-                                                peer.userId,
-                                              ).withOpacity(0.3),
-                                              blurRadius: 20,
-                                              spreadRadius: 4,
-                                            ),
-                                          ],
-                                        ),
-                                        child: peer.avatarUrl.isNotEmpty
-                                            ? ClipOval(
-                                                child: Image.network(
-                                                  peer.avatarUrl,
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder:
-                                                      (
-                                                        context,
-                                                        error,
-                                                        stackTrace,
-                                                      ) {
-                                                        return Icon(
-                                                          Icons.person,
-                                                          color: Colors.white,
-                                                          size: 32,
-                                                        );
-                                                      },
-                                                ),
-                                              )
-                                            : Icon(
-                                                Icons.person,
-                                                color: Colors.white,
-                                                size: 32,
-                                              ),
-                                      ),
-                                    ],
+                          return Marker(
+                            point: LatLng(peer.latitude, peer.longitude),
+                            width: 60,
+                            height: 60,
+                            child: GestureDetector(
+                              onTap: () => _showUserProfile(context, peer),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: _getProfileColor(peer.userId),
+                                  border: Border.all(
+                                    color: peer.isTalking ? Colors.green : Colors.white,
+                                    width: peer.isTalking ? 4 : 3,
                                   ),
                                 ),
-                              );
-                            }),
-                        // Event Markers (Map Pin Style)
-                        ...filteredEvents.where((event) {
-                          // Only show events with valid coordinates
-                          return event.latitude != 0 && event.longitude != 0;
-                        }).map((event) {
-                          return Marker(
-                            point: LatLng(event.latitude, event.longitude),
-                            width: 50,
-                            height: 60,
-                            alignment: Alignment.topCenter,
-                            child: GestureDetector(
-                              onTap: () {
-                                _fetchRoute(LatLng(event.latitude, event.longitude));
-                                _showEventInfoDialog(context, event);
-                              },
-                              child: _MapPinMarker(event: event),
+                                child: peer.avatarUrl.isNotEmpty
+                                    ? ClipOval(
+                                        child: Image.network(
+                                          peer.avatarUrl,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) => Icon(
+                                            Icons.person,
+                                            color: Colors.white,
+                                            size: 30,
+                                          ),
+                                        ),
+                                      )
+                                    : Icon(
+                                        Icons.person,
+                                        color: Colors.white,
+                                        size: 30,
+                                      ),
+                              ),
                             ),
                           );
-                        }),
-                      ],
-                    ),
+                        }).toList(),
+                      ),
                   ],
                 ),
-
               // 2. Peers & Events (Only show non-map overlay if in Virtual Mode)
               if (!worldState.isGpsMode) ...[
                 ...filteredPeers
@@ -692,6 +654,32 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                     }),
               ],
 
+              // Room Markers in Virtual World
+              if (!worldState.isGpsMode && activeEventId == null)
+                ...ref.watch(roomControllerProvider).rooms
+                    .where((room) => room.x != 0 || room.y != 0)
+                    .map((room) {
+                  final pos = worldToScreen(room.x, room.y);
+                  return Positioned(
+                    left: pos.dx - 100,
+                    top: pos.dy - 80,
+                    child: Transform.scale(
+                      scale: worldState.zoom,
+                      child: RoomMarker(
+                        room: room,
+                        onTap: () {
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (c) => RoomDetailsScreen(room: room),
+                          );
+                        },
+                      ),
+                    ),
+                  );
+                }),
+
               if (!worldState.isGpsMode && activeEventId == null)
                 ...events.map((e) {
                   final pos = worldToScreen(e.x, e.y);
@@ -717,7 +705,7 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                     _selectedEvent!.x,
                     _selectedEvent!.y,
                   );
-                  final user = ref.read(authProvider).value;
+                  final user = ref.read(authProvider).user;
                   final isCreator = user?.id == _selectedEvent!.creatorId;
 
                   return Positioned(
@@ -744,7 +732,7 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                             context,
                             MaterialPageRoute(
                               builder: (c) =>
-                                  EventDetailsScreen(event: _selectedEvent!),
+                                  EventDetailsScreen(eventId: _selectedEvent!.id),
                             ),
                           );
                           setState(() => _selectedEvent = null);
@@ -882,9 +870,11 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                           )
                         else
                           _CircleActionButton(
-                            icon: Icons.search,
-                            onPressed: () =>
-                                _showEventDiscovery(context, ref, events),
+                            icon: Icons.explore,
+                            onPressed: () => showDialog(
+                              context: context,
+                              builder: (context) => const DiscoverRoomsDialog(),
+                            ),
                           ),
 
                         if (activeEventId != null &&
@@ -931,52 +921,18 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               const SizedBox(width: 4),
-                              CircleAvatar(
-                                radius: 18,
-                                backgroundColor: Colors.white,
-                                backgroundImage:
-                                    ref
-                                            .watch(authProvider)
-                                            .value
-                                            ?.avatarUrl
-                                            .isNotEmpty ==
-                                        true
-                                    ? NetworkImage(
-                                        ref
-                                            .watch(authProvider)
-                                            .value!
-                                            .avatarUrl,
-                                      )
-                                    : null,
-                                child:
-                                    ref
-                                            .watch(authProvider)
-                                            .value
-                                            ?.avatarUrl
-                                            .isEmpty !=
-                                        false
-                                    ? Text(
-                                        ref
-                                                .watch(authProvider)
-                                                .value
-                                                ?.displayName
-                                                .substring(0, 1)
-                                                .toUpperCase() ??
-                                            '?',
-                                        style: const TextStyle(
-                                          color: Color(0xFFB452FF),
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      )
-                                    : null,
-                              ),
+                                VoxelAvatar(
+                                  radius: 18,
+                                  avatarUrl: ref.watch(authProvider).user?.avatarUrl,
+                                  displayName: ref.watch(authProvider).user?.displayName,
+                                ),
                               const SizedBox(width: 10),
                               ConstrainedBox(
                                 constraints: const BoxConstraints(
                                   maxWidth: 100,
                                 ),
                                 child: Text(
-                                  ref.watch(authProvider).value?.displayName ??
+                                  ref.watch(authProvider).user?.displayName ??
                                       'User',
                                   style: const TextStyle(
                                     color: Colors.white,
@@ -1049,6 +1005,94 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                   ),
                 ),
 
+              // Room Join Indicator
+              if (ref.watch(roomControllerProvider).currentRoom != null)
+                Positioned(
+                  top: isOffline ? 140 : 100,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFB452FF),
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFB452FF).withOpacity(0.4),
+                            blurRadius: 15,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.meeting_room,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Inside: ${ref.watch(roomControllerProvider).currentRoom!.name}',
+                            style: GoogleFonts.outfit(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 14,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          GestureDetector(
+                            onTap: () {
+                              ref.read(roomControllerProvider.notifier).leaveRoom();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Left the room'),
+                                  backgroundColor: Colors.orange,
+                                ),
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.exit_to_app,
+                                    color: Color(0xFFB452FF),
+                                    size: 16,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Exit',
+                                    style: GoogleFonts.outfit(
+                                      color: const Color(0xFFB452FF),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
               // 5. Game Session Overlay
               if (ref.watch(gameSessionProvider) != null) ...[
                 (() {
@@ -1083,7 +1127,7 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                                     ),
                                     const SizedBox(height: 24),
                                     if (gameSession.hostId ==
-                                        ref.read(authProvider).value?.id)
+                                        ref.read(authProvider).user?.id)
                                       ElevatedButton(
                                         onPressed: () {
                                           ref
@@ -1495,12 +1539,23 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                           ? Icons.add_location_alt_rounded
                           : Icons.add_home_work_rounded,
                       color: const Color(0xFFFF5E9B),
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (c) => const CreateEventScreen(),
-                        ),
-                      ),
+                      onTap: () {
+                        if (worldState.isGpsMode) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (c) => const CreateEventScreen(),
+                            ),
+                          );
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (c) => const CreateRoomScreen(),
+                            ),
+                          );
+                        }
+                      },
                       label: worldState.isGpsMode ? 'EVENT' : 'ROOM',
                     ),
                     const SizedBox(height: 16),
@@ -1632,7 +1687,7 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
   }
 
   void _showEventInfoDialog(BuildContext context, VoxelEvent event) {
-    final user = ref.read(authProvider).value;
+    final user = ref.read(authProvider).user;
     final isCreator = user?.id == event.creatorId;
     final worldState = ref.read(worldControllerProvider);
     final distance =
@@ -1896,7 +1951,7 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (c) => EventDetailsScreen(event: event),
+                              builder: (c) => EventDetailsScreen(eventId: event.id),
                             ),
                           );
                         },
@@ -2417,8 +2472,8 @@ class _AvatarCircle extends StatelessWidget {
   final String url;
   final bool isTalking;
   final String name;
-  final bool isMe;
   final Color color;
+  final bool isMe;
   final double size;
 
   const _AvatarCircle({
@@ -2427,7 +2482,7 @@ class _AvatarCircle extends StatelessWidget {
     required this.name,
     required this.color,
     this.isMe = false,
-    this.size = 60.0,
+    this.size = 60,
   });
 
   @override
@@ -2435,85 +2490,86 @@ class _AvatarCircle extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // Avatar with talking indicator
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          width: size,
+          height: size,
           decoration: BoxDecoration(
-            color: isMe ? const Color(0xFFB452FF) : Colors.white,
-            borderRadius: BorderRadius.circular(15),
+            shape: BoxShape.circle,
             border: Border.all(
-              color: isMe ? Colors.white : color.withOpacity(0.5),
-              width: isMe ? 2 : 1.5,
+              color: isTalking ? Colors.greenAccent : Colors.white,
+              width: isTalking ? 4.0 : 3.0,
             ),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 6),
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 8,
+                spreadRadius: 2,
+              ),
+              if (isTalking)
+                BoxShadow(
+                  color: Colors.greenAccent.withOpacity(0.5),
+                  blurRadius: 15,
+                  spreadRadius: 3,
+                ),
             ],
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (isTalking && !isMe) Icon(Icons.mic, size: 10, color: color),
-              if (isTalking && isMe)
-                const Icon(Icons.mic, size: 10, color: Colors.white),
-              const SizedBox(width: 2),
-              Text(
-                name,
-                style: GoogleFonts.outfit(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w900,
-                  color: isMe ? Colors.white : color,
-                ),
-              ),
-            ],
+          child: ClipOval(
+            child: url.isNotEmpty
+                ? Image.network(
+                    url,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: color,
+                        child: const Icon(
+                          Icons.person,
+                          color: Colors.white,
+                          size: 32,
+                        ),
+                      );
+                    },
+                  )
+                : Container(
+                    color: color,
+                    child: const Icon(
+                      Icons.person,
+                      color: Colors.white,
+                      size: 32,
+                    ),
+                  ),
           ),
         ),
         const SizedBox(height: 6),
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            if (isTalking) VoicePulseDecorator(color: color, size: size),
-            Container(
-              width: size,
-              height: size,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: color, width: 3),
-                boxShadow: [
-                  BoxShadow(
-                    color: color.withOpacity(0.3),
-                    blurRadius: 15,
-                    spreadRadius: 2,
-                  ),
-                ],
+        // Username label
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 4,
+          ),
+          decoration: BoxDecoration(
+            color: isMe
+                ? const Color(0xFFB452FF)
+                : Colors.black.withOpacity(0.7),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
               ),
-              child: CircleAvatar(
-                backgroundImage: url.isNotEmpty ? NetworkImage(url) : null,
-                backgroundColor: Colors.grey[200],
-                child: url.isEmpty
-                    ? Text(
-                        name.isNotEmpty ? name[0].toUpperCase() : '?',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: size * 0.3,
-                          color: color,
-                        ),
-                      )
-                    : null,
-              ),
+            ],
+          ),
+          child: Text(
+            name,
+            style: GoogleFonts.outfit(
+              fontSize: 11,
+              fontWeight: isMe ? FontWeight.w700 : FontWeight.w600,
+              color: Colors.white,
             ),
-            if (isTalking)
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: Colors.green,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.mic, size: 10, color: Colors.white),
-                ),
-              ),
-          ],
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
       ],
     );

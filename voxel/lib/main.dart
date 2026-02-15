@@ -48,25 +48,13 @@ class VoxelApp extends ConsumerWidget {
           ),
         ),
       ),
-      home: authState.when(
-        data: (user) {
-          if (user != null) {
-            return const WorldScreen();
-          } else {
-            return const OnboardingScreen();
-          }
-        },
-        loading: () => const SplashScreen(),
-        error: (err, st) => Scaffold(
-          backgroundColor: const Color(0xFFB452FF),
-          body: Center(
-            child: Text(
-              'Error: $err',
-              style: GoogleFonts.outfit(color: Colors.white),
-            ),
-          ),
-        ),
-      ),
+      home: authState.isLoading 
+        ? const SplashScreen()
+        : authState.user != null
+            ? const WorldScreen()
+            : authState.onboardingCompleted
+                ? const LoginScreen()
+                : const OnboardingScreen(),
     );
   }
 }

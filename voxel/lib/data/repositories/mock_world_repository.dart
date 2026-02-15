@@ -93,4 +93,14 @@ class MockWorldRepository implements WorldRepository {
 
   @override
   Stream<Map<String, dynamic>> subscribeSignaling() => const Stream.empty();
+
+  @override
+  Future<void> joinEvent(String eventId) async {
+    // Mock implementation
+  }
+
+  @override
+  Future<void> leaveEvent(String eventId) async {
+    // Mock implementation
+  }
 }

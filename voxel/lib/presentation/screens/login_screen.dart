@@ -281,10 +281,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             _emailController.text.trim(),
             _passwordController.text.trim(),
           );
-      // Success will triger main.dart rebuild to WorldScreen
+      if (mounted) {
+        ToastService.showSuccess(context, 'Welcome back! 🚀');
+      }
+      // Success will trigger main.dart rebuild to WorldScreen
     } catch (e) {
       if (mounted) {
-        ToastService.showError(context, e.toString().replaceAll('Exception: ', '')); // Clean up error msg
+        String errorMessage = e.toString().replaceAll('Exception: ', '');
+        
+        // Show helpful error messages
+        if (errorMessage.contains('Account not found')) {
+          ToastService.showError(context, 'Account not found. Please sign up first.');
+        } else if (errorMessage.contains('Incorrect password')) {
+          ToastService.showError(context, 'Incorrect password. Please try again.');
+        } else {
+          ToastService.showError(context, errorMessage);
+        }
+        
         setState(() => _isLoading = false);
       }
     }

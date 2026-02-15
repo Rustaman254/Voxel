@@ -66,21 +66,43 @@ func (c *Client) readPump() {
 			}
 			break
 		}
-		
+
 		// Unmarshal generic message
 		var msg Message
 		if err := json.Unmarshal(message, &msg); err != nil {
 			log.Printf("error unmarshal: %v", err)
 			continue
 		}
-		
+
 		// Handle different types
 		switch msg.Type {
 		case "move", "audio", "webrtc_offer", "webrtc_answer", "webrtc_ice_candidate":
 			c.Hub.Broadcast <- BroadcastMessage{Message: message, Exclude: c}
-		case "create_event":
+		case "create_event", "join_event", "leave_event":
 			if payload, ok := msg.Payload.(map[string]interface{}); ok {
-				c.Hub.HandleCreateEvent(payload, c)
+				if msg.Type == "create_event" {
+					c.Hub.HandleCreateEvent(payload, c)
+				} else if msg.Type == "join_event" {
+					c.Hub.HandleJoinEvent(payload, c)
+				} else if msg.Type == "leave_event" {
+					c.Hub.HandleLeaveEvent(payload, c)
+				}
+			}
+		case "kick_user", "ban_user":
+			if payload, ok := msg.Payload.(map[string]interface{}); ok {
+				if msg.Type == "kick_user" {
+					c.Hub.HandleKickUser(payload, c)
+				} else if msg.Type == "ban_user" {
+					c.Hub.HandleBanUser(payload, c)
+				}
+			}
+		case "join_room", "leave_room":
+			if payload, ok := msg.Payload.(map[string]interface{}); ok {
+				if msg.Type == "join_room" {
+					c.Hub.HandleJoinRoom(payload, c)
+				} else if msg.Type == "leave_room" {
+					c.Hub.HandleLeaveRoom(payload, c)
+				}
 			}
 		case "create_session", "join_session", "start_game":
 			if payload, ok := msg.Payload.(map[string]interface{}); ok {
