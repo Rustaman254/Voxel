@@ -68,11 +68,34 @@ class WebRTCService {
     final Map<String, dynamic> configuration = {
       'iceServers': [
         {'urls': 'stun:stun.l.google.com:19302'},
-      ]
+        {'urls': 'stun:stun1.l.google.com:19302'},
+        {'urls': 'stun:stun2.l.google.com:19302'},
+        {
+          'urls': 'turn:turn.codetalk.io:3478',
+          'username': 'user',
+          'credential': 'password'
+        },
+      ],
+      'sdpSemantics': 'unified-plan',
+      'iceTransportPolicy': 'relay',
     };
 
     final RTCPeerConnection peerConnection = await createPeerConnection(configuration);
     _peerConnections[peerId] = peerConnection;
+
+    // Set Opus as the preferred codec
+    final transceivers = await peerConnection.getTransceivers();
+    for (var t in transceivers) {
+      if (t.sender.track?.kind == 'audio') {
+        final capabilities = await RTCRtpSender.getCapabilities('audio');
+        final codecs = capabilities.codecs
+            ?.where((c) => c.mimeType.toLowerCase() == 'audio/opus')
+            .toList();
+        if (codecs != null && codecs.isNotEmpty) {
+          await t.setCodecPreferences(codecs);
+        }
+      }
+    }
 
     // Add local stream to peer connection
     if (_localStream != null) {

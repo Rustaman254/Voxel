@@ -16,6 +16,7 @@ class WebrtcVoiceService implements VoiceChatService {
   
   final _stateController = StreamController<VoiceChatState>.broadcast();
   VoiceChatState _currentState = const VoiceChatState();
+  bool _isMuted = false;
 
   String? _currentChannelId;
   int _reconnectAttempts = 0;
@@ -161,12 +162,14 @@ class WebrtcVoiceService implements VoiceChatService {
         'autoGainControl': true,
         'sampleRate': 48000,
         'channelCount': 1,
+        'googCpuOveruseDetection': true,
       },
       'video': false,
     };
 
     try {
       _localStream = await navigator.mediaDevices.getUserMedia(constraints);
+      await Helper.setSpeakerphoneOn(true);
       debugPrint('✅ Local audio stream initialized with enhanced quality');
     } catch (e) {
       debugPrint('❌ Failed to get local stream: $e');
@@ -180,11 +183,33 @@ class WebrtcVoiceService implements VoiceChatService {
         {'urls': 'stun:stun.l.google.com:19302'},
         {'urls': 'stun:stun1.l.google.com:19302'},
         {'urls': 'stun:stun2.l.google.com:19302'},
+        {
+          'urls': 'turn:turn.codetalk.io:3478',
+          'username': 'user',
+          'credential': 'password'
+        },
       ],
       'sdpSemantics': 'unified-plan',
+      'iceTransportPolicy': 'relay',
     };
 
     final pc = await createPeerConnection(configuration);
+
+    // Set Opus as the preferred codec
+    final transceivers = await pc.getTransceivers();
+    for (var t in transceivers) {
+      if (t.sender.track?.kind == 'audio') {
+        // Manually create RTCRtpCodecCapability for Opus
+        final RTCRtpCodecCapability opusCodec = RTCRtpCodecCapability(
+          mimeType: 'audio/opus',
+          clockRate: 48000,
+          channels: 2, // Opus typically uses 2 channels
+        );
+        
+        await t.setCodecPreferences([opusCodec]);
+        debugPrint('✅ Opus codec set as preferred for audio transceiver.');
+      }
+    }
     
     // Add local stream tracks
     _localStream?.getTracks().forEach((track) {

@@ -43,10 +43,16 @@
 	</array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>This app needs always-on access to your location for continuous real-time tracking features, even when the app is in the background.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>This app needs access to microphone for proximity voice chat.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>This app needs access to location for proximity-based features.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 </dict>
