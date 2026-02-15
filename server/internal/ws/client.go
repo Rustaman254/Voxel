@@ -104,6 +104,17 @@ func (c *Client) readPump() {
 					c.Hub.HandleLeaveRoom(payload, c)
 				}
 			}
+
+		case "send_message", "friend_request":
+			if payload, ok := msg.Payload.(map[string]interface{}); ok {
+				if msg.Type == "send_message" {
+					c.Hub.HandleSendMessage(payload, c)
+				} else if msg.Type == "friend_request" {
+					c.Hub.HandleFriendRequest(payload, c)
+				} else if msg.Type == "friend_request_response" {
+					c.Hub.HandleFriendRequestResponse(payload, c)
+				}
+			}
 		case "create_session", "join_session", "start_game":
 			if payload, ok := msg.Payload.(map[string]interface{}); ok {
 				c.Hub.SessionManager.HandleMessage(msg.Type, payload, c)

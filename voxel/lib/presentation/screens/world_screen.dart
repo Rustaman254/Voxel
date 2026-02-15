@@ -25,11 +25,14 @@ import '../../domain/models/event_model.dart';
 import '../../domain/entities/avatar_position.dart';
 import '../widgets/discover_events_dialog.dart';
 import '../widgets/discover_rooms_dialog.dart';
+import '../widgets/active_users_dialog.dart';
 
 import 'chat_screen.dart';
 import 'profile_screen.dart';
 import 'room_creation_screen.dart';
 import 'room_details_screen.dart';
+import '../widgets/notification_dialog.dart';
+import '../state/notification_service.dart';
 import '../state/room_controller.dart';
 import '../widgets/room_marker.dart';
 
@@ -1449,6 +1452,47 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                 bottom: 120,
                 child: Column(
                   children: [
+                    // NOTIFICATIONS
+                    Consumer(
+                      builder: (context, ref, child) {
+                        final unreadCount = ref.watch(notificationServiceProvider.notifier).unreadCount;
+                        return Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            _buildSideButton(
+                              icon: Icons.notifications,
+                              color: Colors.amber, 
+                              onTap: () => showDialog(
+                                context: context,
+                                builder: (c) => const NotificationDialog(),
+                              ),
+                              label: 'ALERTS',
+                            ),
+                            if (unreadCount > 0)
+                              Positioned(
+                                top: -2,
+                                right: -2,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Text(
+                                    unreadCount > 9 ? '9+' : '$unreadCount',
+                                    style: GoogleFonts.outfit(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
                     // GPS SYNC TOGGLE
                     _buildSideButton(
                       icon: worldState.isGpsMode
@@ -1496,6 +1540,27 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                             : 'TRACKING',
                       ),
                     if (worldState.isGpsMode) const SizedBox(height: 16),
+                    // DISCOVER EVENTS (GPS Mode)
+                    if (worldState.isGpsMode) ...[
+                      _buildSideButton(
+                        icon: Icons.calendar_month,
+                        color: const Color(0xFFB452FF),
+                        onTap: () => _showEventDiscovery(context, ref, events),
+                        label: 'EVENTS',
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    // ACTIVE USERS (Visitors)
+                    _buildSideButton(
+                      icon: Icons.people_alt_rounded,
+                      color: Colors.blue,
+                      onTap: () => showDialog(
+                        context: context, 
+                        builder: (c) => const ActiveUsersDialog(),
+                      ),
+                      label: 'VISITORS',
+                    ),
+                    const SizedBox(height: 16),
                     // LOCATE ME (Manual Trigger)
                     if (worldState.isGpsMode) ...[
                       _buildSideButton(
@@ -1575,6 +1640,93 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                   ],
                 ),
               ),
+
+              // TRACKING ARROWS
+              if (worldState.myPosition != null)
+                ...worldState.trackedUserIds.map((trackedId) {
+                   final target = peers.firstWhere((p) => p.userId == trackedId, orElse: () => AvatarPosition.empty());
+                   
+                   if (target.userId.isNotEmpty) {
+                      double angle = 0;
+                      if (worldState.isGpsMode) {
+                         // Bearing
+                         final bearing = Geolocator.bearingBetween(
+                           worldState.myPosition!.latitude, 
+                           worldState.myPosition!.longitude, 
+                           target.latitude, 
+                           target.longitude,
+                         );
+                         // Adjust by phone heading if valid
+                         angle = (bearing - worldState.heading) * (pi / 180); 
+                      } else {
+                         // Virtual angle
+                         angle = atan2(target.y - worldState.myPosition!.y, target.x - worldState.myPosition!.x) + (pi / 2);
+                      }
+                      
+                      Offset centerPos;
+                      if (worldState.isGpsMode) {
+                         // In GPS mode, assume player is center for the arrow overlay
+                         centerPos = Offset(MediaQuery.of(context).size.width / 2, MediaQuery.of(context).size.height / 2);
+                      } else {
+                         centerPos = worldToScreen(worldState.myPosition!.x, worldState.myPosition!.y);
+                      }
+                      
+                      // Distance text
+                      String distText = '';
+                      if (worldState.isGpsMode) {
+                         final d = Geolocator.distanceBetween(worldState.myPosition!.latitude, worldState.myPosition!.longitude, target.latitude, target.longitude);
+                         distText = d > 1000 ? '${(d/1000).toStringAsFixed(1)}km' : '${d.toStringAsFixed(0)}m';
+                      } else {
+                         final d = sqrt(pow(target.x - worldState.myPosition!.x, 2) + pow(target.y - worldState.myPosition!.y, 2));
+                         distText = '${d.toStringAsFixed(0)}m';
+                      }
+
+                      return Positioned(
+                        left: centerPos.dx - 60,
+                        top: centerPos.dy - 60,
+                        child: IgnorePointer(
+                          child: SizedBox(
+                            width: 120, height: 120,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Transform.rotate(
+                                  angle: angle, 
+                                  child: Container(
+                                     width: 120, height: 120,
+                                     alignment: Alignment.topCenter,
+                                     child: Padding(
+                                       padding: const EdgeInsets.only(top: 10),
+                                       child: Icon(Icons.navigation_rounded, color: const Color(0xFFB452FF), size: 40),
+                                     ),
+                                  ),
+                                ),
+                                Positioned(
+                                  bottom: 0,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black54,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      distText,
+                                      style: GoogleFonts.robotoMono(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      );
+                   }
+                   return const SizedBox.shrink();
+                }),
 
               // Location Status Overlay
               if (isLocationMissing)

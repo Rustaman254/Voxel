@@ -14,6 +14,11 @@ final peersStreamProvider = StreamProvider<List<AvatarPosition>>((ref) {
   return repo.subscribePositions();
 });
 
+final peersProvider = Provider<List<AvatarPosition>>((ref) {
+  final asyncPeers = ref.watch(peersStreamProvider);
+  return asyncPeers.value ?? [];
+});
+
 
 final voiceStateProvider = StreamProvider<VoiceChatState>((ref) {
   final service = ref.watch(voiceChatServiceProvider);

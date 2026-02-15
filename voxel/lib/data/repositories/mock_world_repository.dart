@@ -6,15 +6,17 @@ import '../../domain/repositories/world_repository.dart';
 
 class MockWorldRepository implements WorldRepository {
   final _positionController = StreamController<List<AvatarPosition>>.broadcast();
+  final _notificationController = StreamController<Map<String, dynamic>>.broadcast();
   final List<AvatarPosition> _mockUsers = [];
   Timer? _simulationTimer;
   final Random _rnd = Random();
+  String? _userId;
+
   MockWorldRepository() {
     _initMockUsers();
   }
 
   void _initMockUsers() {
-    // intrinsic parameters
     final userCount = 5;
     final startX = 500.0;
     final startY = 500.0;
@@ -25,7 +27,6 @@ class MockWorldRepository implements WorldRepository {
         x: startX + _rnd.nextDouble() * 200 - 100,
         y: startY + _rnd.nextDouble() * 200 - 100,
         updatedAt: DateTime.now(),
-        // Use 'adventurer' style for Memoji-like 3D look
         avatarUrl: 'https://api.dicebear.com/9.x/adventurer/png?seed=${seeds[i % seeds.length]}&backgroundColor=transparent',
       ));
     }
@@ -33,8 +34,6 @@ class MockWorldRepository implements WorldRepository {
 
   void _startSimulation() {
     _stopSimulation();
-    // No random movement requested. Just emit static users.
-    // _simulationTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) { ... });
     _positionController.add(List.from(_mockUsers));
   }
 
@@ -44,7 +43,7 @@ class MockWorldRepository implements WorldRepository {
 
   @override
   Future<void> connect(String userId, {String? token}) async {
-    _userId = userId; //Simulate network delay
+    _userId = userId;
     await Future.delayed(const Duration(milliseconds: 500));
     _startSimulation();
   }
@@ -61,10 +60,7 @@ class MockWorldRepository implements WorldRepository {
 
   @override
   Future<void> updateMyPosition(AvatarPosition position) async {
-    // In a real app, we'd send this to server.
-    // For mock, we effectively do nothing or could echo it back.
-    // We won't add 'myself' to _mockUsers to avoid double rendering if UI handles local user separately.
-    await Future.delayed(const Duration(milliseconds: 10)); // tiny latency
+    await Future.delayed(const Duration(milliseconds: 10));
   }
 
   @override
@@ -95,12 +91,21 @@ class MockWorldRepository implements WorldRepository {
   Stream<Map<String, dynamic>> subscribeSignaling() => const Stream.empty();
 
   @override
-  Future<void> joinEvent(String eventId) async {
-    // Mock implementation
+  Future<void> joinEvent(String eventId) async {}
+
+  @override
+  Future<void> leaveEvent(String eventId) async {}
+
+  @override
+  Stream<Map<String, dynamic>> subscribeNotifications() {
+    return _notificationController.stream;
   }
 
   @override
-  Future<void> leaveEvent(String eventId) async {
-    // Mock implementation
+  Future<void> respondToFriendRequest(String requestId, String response) async {
+    await Future.delayed(const Duration(milliseconds: 200));
   }
+
+  @override
+  void sendMessage(Map<String, dynamic> data) {}
 }

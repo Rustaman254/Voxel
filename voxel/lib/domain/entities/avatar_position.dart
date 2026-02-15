@@ -27,6 +27,15 @@ class AvatarPosition extends Equatable {
     this.heading = 0.0, // Default heading (north)
   });
 
+  factory AvatarPosition.empty() {
+    return AvatarPosition(
+      userId: '',
+      x: 0,
+      y: 0,
+      updatedAt: DateTime.now(),
+    );
+  }
+
   AvatarPosition copyWith({
     String? userId,
     String? username,

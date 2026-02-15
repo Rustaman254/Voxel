@@ -31,6 +31,7 @@ class SocketWorldRepository implements WorldRepository {
   final _sessionController = StreamController<Map<String, dynamic>>.broadcast();
   final _signalingController = StreamController<Map<String, dynamic>>.broadcast();
   final _moderationController = StreamController<Map<String, dynamic>>.broadcast();
+  final _notificationController = StreamController<Map<String, dynamic>>.broadcast();
   
   bool _isConnected = false;
   String? _lastUserId;
@@ -237,11 +238,20 @@ class SocketWorldRepository implements WorldRepository {
            moderationData['type'] = type;
            _moderationController.add(moderationData);
         }
+      } else if (type == 'message_received' || type == 'friend_request') {
+        if (payload is Map<String, dynamic>) {
+          final notificationData = Map<String, dynamic>.from(payload);
+          notificationData['type'] = type;
+          _notificationController.add(notificationData);
+        }
       }
     } catch (e) {
       debugPrint('Error parsing message: $e');
     }
   }
+
+  @override
+  Stream<Map<String, dynamic>> subscribeNotifications() => _notificationController.stream;
 
   Stream<Map<String, dynamic>> subscribeModeration() => _moderationController.stream;
 
@@ -296,6 +306,7 @@ class SocketWorldRepository implements WorldRepository {
   void _startHeartbeat() {
     _heartbeatTimer?.cancel();
     // Send ping every 30 seconds to keep connection alive (prevents phone from killing WebSocket)
+    // Send ping every 30 seconds to keep connection alive (prevents phone from killing WebSocket)
     _heartbeatTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       if (_isConnected && _channel != null) {
         try {
@@ -309,6 +320,20 @@ class SocketWorldRepository implements WorldRepository {
         timer.cancel();
       }
     });
+  }
+
+  @override
+  Future<void> respondToFriendRequest(String requestId, String response) async {
+    if (_channel == null) return;
+    
+    final msg = jsonEncode({
+      'type': 'friend_request_response',
+      'payload': {
+        'requestId': requestId,
+        'response': response,
+      },
+    });
+    _channel!.sink.add(msg);
   }
 
   @override
@@ -470,6 +495,7 @@ class SocketWorldRepository implements WorldRepository {
   }
 
   // Public method to send custom messages (e.g., for room join/leave)
+  @override
   void sendMessage(Map<String, dynamic> msg) {
     _send(msg);
   }

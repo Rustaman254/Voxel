@@ -77,4 +77,9 @@ class MockVoiceChatService implements VoiceChatService {
     // Mock implementation does nothing
     print('VoiceChat: Muted = $muted');
   }
+
+  @override
+  Future<void> initiateCall(String peerId) async {
+    print('VoiceChat: Providing mock initiateCall for $peerId');
+  }
 }

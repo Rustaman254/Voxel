@@ -1319,6 +1319,55 @@ func main() {
 		c.String(http.StatusOK, csv)
 	})
 
+	// Get Upcoming Events
+	r.GET("/api/events/upcoming", func(c *gin.Context) {
+		collection := data.GetCollection("events")
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		now := time.Now()
+		cursor, err := collection.Find(ctx, bson.M{"startTime": bson.M{"$gt": now}})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch events"})
+			return
+		}
+		defer cursor.Close(ctx)
+
+		var events []data.EventModel
+		if err = cursor.All(ctx, &events); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode events"})
+			return
+		}
+
+		c.JSON(http.StatusOK, events)
+	})
+
+	// Get Ongoing Events
+	r.GET("/api/events/ongoing", func(c *gin.Context) {
+		collection := data.GetCollection("events")
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		now := time.Now()
+		cursor, err := collection.Find(ctx, bson.M{
+			"startTime": bson.M{"$lte": now},
+			"endTime":   bson.M{"$gte": now},
+		})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch events"})
+			return
+		}
+		defer cursor.Close(ctx)
+
+		var events []data.EventModel
+		if err = cursor.All(ctx, &events); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode events"})
+			return
+		}
+
+		c.JSON(http.StatusOK, events)
+	})
+
 	// WebSocket Route
 	r.GET("/ws", func(c *gin.Context) {
 		log.Printf("👣 /ws endpoint hit! Headers: %v", c.Request.Header)

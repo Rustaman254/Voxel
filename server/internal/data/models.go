@@ -131,3 +131,21 @@ type EventModel struct {
 	Attendees        []Attendee         `bson:"attendees" json:"attendees"`
 	CreatedAt        time.Time          `bson:"createdAt" json:"createdAt"`
 }
+
+// Notification System Models
+type Message struct {
+	ID         primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	SenderID   string             `bson:"senderId" json:"senderId"`
+	ReceiverID string             `bson:"receiverId" json:"receiverId"`
+	Content    string             `bson:"content" json:"content"`
+	Timestamp  time.Time          `bson:"timestamp" json:"timestamp"`
+	Read       bool               `bson:"read" json:"read"`
+}
+
+type FriendRequest struct {
+	ID         primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	SenderID   string             `bson:"senderId" json:"senderId"`
+	ReceiverID string             `bson:"receiverId" json:"receiverId"`
+	Status     string             `bson:"status" json:"status"` // pending, accepted, rejected
+	Timestamp  time.Time          `bson:"timestamp" json:"timestamp"`
+}

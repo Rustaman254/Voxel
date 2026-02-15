@@ -1,3 +1,4 @@
+import 'dart:ui'; // For Offset
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
@@ -24,8 +25,9 @@ class WorldState {
   final bool isMuted;
   final bool isManuallyMuted;
   final bool isVisibleOnMap; // Whether I want to be visible on map
-  final Set<String> trackedUserIds; // Users I want to track specifically
+  final Set<String> trackedUserIds; // Users I am tracking with direction arrow
   final double heading; // Compass heading in degrees (0-360)
+  final Offset roomWorldOffset; // Offset for room world coordinates (0,0 for global)
   
   bool get isGpsMode => _isGpsMode ?? false;
 
@@ -39,8 +41,9 @@ class WorldState {
     this.isMuted = true,
     this.isManuallyMuted = false,
     this.isVisibleOnMap = true, // Default to visible
-    this.trackedUserIds = const {}, // Empty set means track all visible users
+    this.trackedUserIds = const {}, 
     this.heading = 0.0, // Default heading (north)
+    this.roomWorldOffset = Offset.zero,
   }) : _isGpsMode = isGpsMode;
 
   WorldState copyWith({
@@ -55,6 +58,7 @@ class WorldState {
     bool? isVisibleOnMap,
     Set<String>? trackedUserIds,
     double? heading,
+    Offset? roomWorldOffset,
   }) {
     return WorldState(
       cameraX: cameraX ?? this.cameraX,
@@ -68,6 +72,7 @@ class WorldState {
       isVisibleOnMap: isVisibleOnMap ?? this.isVisibleOnMap,
       trackedUserIds: trackedUserIds ?? this.trackedUserIds,
       heading: heading ?? this.heading,
+      roomWorldOffset: roomWorldOffset ?? this.roomWorldOffset,
     );
   }
 }
@@ -127,7 +132,26 @@ class WorldController extends StateNotifier<WorldState> {
        // Proximity logic is now handled by proximityLogicProvider in peers_provider.dart
        // We only need to check if ANYONE is near for auto-mute UI
        _checkAutoMute(peers);
+       _checkProximityVoice(peers);
     });
+  }
+
+  void _checkProximityVoice(List<AvatarPosition> peers) {
+    if (state.myPosition == null || _voiceChatService == null) return;
+    
+    // In global mode (not in a room), we use P2P mesh voice for nearby users
+    if (state.activeEventId == null && state.roomWorldOffset == Offset.zero) {
+       for (final peer in peers) {
+        final dist = Geolocator.distanceBetween(
+             state.myPosition!.latitude, state.myPosition!.longitude, 
+             peer.latitude, peer.longitude
+         );
+         
+         if (dist < 20.0) {
+            _voiceChatService!.initiateCall(peer.userId);
+         }
+       }
+    }
   }
 
   void _checkAutoMute(List<AvatarPosition> peers) {
@@ -156,10 +180,9 @@ class WorldController extends StateNotifier<WorldState> {
   void _initMyPosition() {
     if (_userId == null) return;
     
-     // Random spawn position for GPS Off mode (between 200-800 for both x and y)
      final random = Random();
-     final randomX = 200 + random.nextDouble() * 600; // Random between 200-800
-     final randomY = 200 + random.nextDouble() * 600; // Random between 200-800
+     final randomX = 200 + random.nextDouble() * 600;
+     final randomY = 200 + random.nextDouble() * 600;
      
      final pos = AvatarPosition(
         userId: _userId,
@@ -187,7 +210,6 @@ class WorldController extends StateNotifier<WorldState> {
 
     try {
       debugPrint('📍 Fetching current position...');
-      // Fetch initial position immediately for maps
       final initialPosition = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(accuracy: LocationAccuracy.best),
         timeLimit: const Duration(seconds: 10),
@@ -197,8 +219,6 @@ class WorldController extends StateNotifier<WorldState> {
       
       if (state.myPosition != null) {
         final current = state.myPosition!;
-        
-        // Map GPS to Virtual X/Y initially too
         const refLat = -1.28; 
         const refLong = 36.82;
         final nextX = 500 + (initialPosition.longitude - refLong) * 50000;
@@ -217,30 +237,34 @@ class WorldController extends StateNotifier<WorldState> {
       }
     } catch (e) {
       debugPrint('📍 Error fetching initial location: $e');
-      // If we failed, maybe start the stream anyway and hope it fires later
     }
 
     debugPrint('📍 Starting location position stream');
+    _locationSubscription?.cancel();
     _locationSubscription = _locationService.getPositionStream().listen((position) {
       debugPrint('📍 Stream Position: ${position.latitude}, ${position.longitude}');
       if (state.myPosition == null) return;
 
       final current = state.myPosition!;
       
-      // If GPS mode is on, we also update X/Y based on Lat/Long
+      if (current.latitude != 0 && current.longitude != 0) {
+        final dist = Geolocator.distanceBetween(
+          current.latitude, current.longitude, 
+          position.latitude, position.longitude
+        );
+        if (dist < 2.5 && position.speed < 0.5) return;
+      }
+      
       double? nextX = current.x;
       double? nextY = current.y;
       
       if (state.isGpsMode) {
-        // Simple mapping: 1 unit in Voxel = small change in Lat/Long
-        // Center on some reference point
         const refLat = -1.28; 
         const refLong = 36.82;
         nextX = 500 + (position.longitude - refLong) * 50000;
         nextY = 500 + (position.latitude - refLat) * 50000;
       }
 
-      // Update heading if available
       final newHeading = position.heading;
       if (newHeading >= 0 && newHeading <= 360) {
         state = state.copyWith(heading: newHeading);
@@ -252,9 +276,8 @@ class WorldController extends StateNotifier<WorldState> {
         x: nextX,
         y: nextY,
         updatedAt: DateTime.now(),
-        // Visibility: If GPS is off, we're invisible to others but can see ourselves
         isVisible: state.isGpsMode ? state.isVisibleOnMap : false,
-        heading: newHeading >= 0 && newHeading <= 360 ? newHeading : current.heading, // Sync heading to all users
+        heading: newHeading >= 0 && newHeading <= 360 ? newHeading : current.heading,
       );
       
       state = state.copyWith(myPosition: newPos);
@@ -263,7 +286,6 @@ class WorldController extends StateNotifier<WorldState> {
   }
 
   void panCamera(double dx, double dy) {
-    // Adjust sensitivity by zoom
     final scale = 1.0 / state.zoom;
     state = state.copyWith(
       cameraX: state.cameraX - (dx * scale),
@@ -273,7 +295,6 @@ class WorldController extends StateNotifier<WorldState> {
 
   void zoomCamera(double scaleChange) {
     double newZoom = state.zoom * scaleChange;
-    // Clamp zoom
     if (newZoom < 0.1) newZoom = 0.1;
     if (newZoom > 5.0) newZoom = 5.0;
     state = state.copyWith(zoom: newZoom);
@@ -283,10 +304,8 @@ class WorldController extends StateNotifier<WorldState> {
     final newMute = !state.isMuted;
     state = state.copyWith(
       isMuted: newMute,
-      isManuallyMuted: newMute, // If user toggles, we consider it a manual choice
+      isManuallyMuted: newMute,
     );
-    
-    // Actually mute/unmute the microphone
     _voiceChatService?.setMuted(newMute);
   }
 
@@ -294,22 +313,17 @@ class WorldController extends StateNotifier<WorldState> {
     final newMode = !state.isGpsMode;
     state = state.copyWith(isGpsMode: newMode);
     
-    // Reset Zoom/Camera when switching modes for better UX
     if (newMode) {
-      // Switch to Map: Zoom level 15 is standard for street level
       state = state.copyWith(zoom: 15.0); 
-      // Automatically enable location tracking when GPS mode is turned on
       _initLocationTracking();
     } else {
-      // Switch to Virtual: Zoom level 1.0 is standard
       state = state.copyWith(zoom: 1.0, cameraX: state.myPosition?.x ?? 500, cameraY: state.myPosition?.y ?? 500);
       _locationSubscription?.cancel();
       _locationSubscription = null;
       
-      // When GPS is turned off, make user invisible to others
       if (state.myPosition != null) {
         final newPos = state.myPosition!.copyWith(
-          isVisible: false, // Invisible to others when GPS off
+          isVisible: false,
           updatedAt: DateTime.now(),
         );
         state = state.copyWith(myPosition: newPos);
@@ -317,7 +331,6 @@ class WorldController extends StateNotifier<WorldState> {
       }
     }
     
-    // Force a position sync whenever mode changes
     if (state.myPosition != null) {
       _worldRepository.updateMyPosition(state.myPosition!);
     }
@@ -336,7 +349,7 @@ class WorldController extends StateNotifier<WorldState> {
     state = state.copyWith(
       cameraX: state.myPosition!.x,
       cameraY: state.myPosition!.y,
-      zoom: 1.0, // Optional: reset zoom too?
+      zoom: 1.0,
     );
   }
 
@@ -347,7 +360,7 @@ class WorldController extends StateNotifier<WorldState> {
   DateTime _lastPositionUpdate = DateTime.now();
   
   void moveMyAvatar(double dx, double dy) {
-    if (state.myPosition == null || state.isGpsMode) return; // Block manual move in GPS mode
+    if (state.myPosition == null || state.isGpsMode) return;
     
     final scale = 1.0 / state.zoom;
     final current = state.myPosition!;
@@ -357,17 +370,31 @@ class WorldController extends StateNotifier<WorldState> {
       updatedAt: DateTime.now(),
     );
     
-    // Always update local state immediately for smooth UI
     state = state.copyWith(myPosition: newPos);
     
-    // Throttle network updates (max 10 per second = 100ms)
     if (DateTime.now().difference(_lastPositionUpdate).inMilliseconds > 100) {
       _lastPositionUpdate = DateTime.now();
       _worldRepository.updateMyPosition(newPos);
     }
   }
 
-  // Called when drag ends to ensure final position is synced
+  void teleportAvatar(double x, double y) {
+    if (state.myPosition == null) return;
+    
+    final newPos = state.myPosition!.copyWith(
+      x: x, 
+      y: y,
+      updatedAt: DateTime.now(),
+    );
+    
+    state = state.copyWith(
+      myPosition: newPos,
+      cameraX: x,
+      cameraY: y,
+    );
+    _worldRepository.updateMyPosition(newPos);
+  }
+
   void forcePositionSync() {
     if (state.myPosition == null) return;
     _worldRepository.updateMyPosition(state.myPosition!);
@@ -381,9 +408,6 @@ class WorldController extends StateNotifier<WorldState> {
       updatedAt: DateTime.now(),
     );
     state = state.copyWith(myPosition: newPos);
-    
-    // Throttle voice status updates slightly too (though less critical)
-    // We want this snappy, but not noise
     _worldRepository.updateMyPosition(newPos);
   }
 
@@ -391,7 +415,6 @@ class WorldController extends StateNotifier<WorldState> {
     final newVisibility = !state.isVisibleOnMap;
     state = state.copyWith(isVisibleOnMap: newVisibility);
     
-    // Update position with new visibility
     if (state.myPosition != null) {
       final newPos = state.myPosition!.copyWith(
         isVisible: newVisibility,
@@ -403,13 +426,20 @@ class WorldController extends StateNotifier<WorldState> {
   }
 
   void toggleTrackUser(String userId) {
-    final newTracked = Set<String>.from(state.trackedUserIds);
-    if (newTracked.contains(userId)) {
-      newTracked.remove(userId);
+    final current = state.trackedUserIds;
+    final newSet = Set<String>.from(current);
+    
+    if (newSet.contains(userId)) {
+      newSet.remove(userId);
     } else {
-      newTracked.add(userId);
+      newSet.add(userId);
     }
-    state = state.copyWith(trackedUserIds: newTracked);
+    
+    state = state.copyWith(trackedUserIds: newSet);
+  }
+
+  void setRoomWorldOffset(Offset offset) {
+    state = state.copyWith(roomWorldOffset: offset);
   }
 
   void clearTrackedUsers() {

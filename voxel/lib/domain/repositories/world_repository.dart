@@ -42,4 +42,13 @@ abstract class WorldRepository {
 
   /// Leave an event
   Future<void> leaveEvent(String eventId);
+
+  /// Stream of notifications (messages, friend requests)
+  Stream<Map<String, dynamic>> subscribeNotifications();
+
+  /// Respond to a friend request ('accept' or 'reject')
+  Future<void> respondToFriendRequest(String requestId, String response);
+
+  /// Send a generic message to the server
+  void sendMessage(Map<String, dynamic> data);
 }

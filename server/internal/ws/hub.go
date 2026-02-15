@@ -193,7 +193,21 @@ func (h *Hub) HandleJoinEvent(payload map[string]interface{}, client *Client) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := collection.UpdateOne(
+	// Get event details
+	var event data.VoxelEvent
+	err := collection.FindOne(ctx, bson.M{"id": eventID}).Decode(&event)
+	if err != nil {
+		log.Printf("Failed to find event: %v", err)
+		return
+	}
+
+	// Get user info
+	usersCollection := data.GetCollection("users")
+	objID, _ := primitive.ObjectIDFromHex(userID)
+	var user data.User
+	err = usersCollection.FindOne(ctx, bson.M{"_id": objID}).Decode(&user)
+
+	_, err = collection.UpdateOne(
 		ctx,
 		bson.M{"id": eventID},
 		bson.M{"$addToSet": bson.M{"attendeeIds": userID}},
@@ -201,6 +215,21 @@ func (h *Hub) HandleJoinEvent(payload map[string]interface{}, client *Client) {
 	if err != nil {
 		log.Printf("Failed to join event: %v", err)
 		return
+	}
+
+	// Send notification to event creator
+	if event.CreatorID != userID {
+		notificationMsg, _ := json.Marshal(Message{
+			Type: "event_participant_joined",
+			Payload: map[string]interface{}{
+				"eventId":    eventID,
+				"eventTitle": event.Title,
+				"userId":     userID,
+				"username":   user.Username,
+			},
+		})
+		h.sendToUser(event.CreatorID, notificationMsg)
+		log.Printf("📬 Sent join notification to event creator %s", event.CreatorID)
 	}
 
 	// Broadcast update (we send the whole event for simplicity or just the update)
@@ -215,7 +244,21 @@ func (h *Hub) HandleLeaveEvent(payload map[string]interface{}, client *Client) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := collection.UpdateOne(
+	// Get event details
+	var event data.VoxelEvent
+	err := collection.FindOne(ctx, bson.M{"id": eventID}).Decode(&event)
+	if err != nil {
+		log.Printf("Failed to find event: %v", err)
+		return
+	}
+
+	// Get user info
+	usersCollection := data.GetCollection("users")
+	objID, _ := primitive.ObjectIDFromHex(userID)
+	var user data.User
+	err = usersCollection.FindOne(ctx, bson.M{"_id": objID}).Decode(&user)
+
+	_, err = collection.UpdateOne(
 		ctx,
 		bson.M{"id": eventID},
 		bson.M{"$pull": bson.M{"attendeeIds": userID}},
@@ -223,6 +266,21 @@ func (h *Hub) HandleLeaveEvent(payload map[string]interface{}, client *Client) {
 	if err != nil {
 		log.Printf("Failed to leave event: %v", err)
 		return
+	}
+
+	// Send notification to event creator
+	if event.CreatorID != userID {
+		notificationMsg, _ := json.Marshal(Message{
+			Type: "event_participant_left",
+			Payload: map[string]interface{}{
+				"eventId":    eventID,
+				"eventTitle": event.Title,
+				"userId":     userID,
+				"username":   user.Username,
+			},
+		})
+		h.sendToUser(event.CreatorID, notificationMsg)
+		log.Printf("📬 Sent leave notification to event creator %s", event.CreatorID)
 	}
 
 	h.broadcastEventUpdate(eventID)
@@ -364,17 +422,6 @@ func (h *Hub) HandleBanUser(payload map[string]interface{}, client *Client) {
 	}
 }
 
-func (h *Hub) sendExistingPositions(client *Client) {
-	// Send positions one by one to simulate 'move' messages for new client
-	for _, pos := range h.UserPositions {
-		msg, _ := json.Marshal(Message{
-			Type:    "move",
-			Payload: pos,
-		})
-		client.Send <- msg
-	}
-}
-
 // HandleJoinRoom switches a client's session to a room ID
 func (h *Hub) HandleJoinRoom(payload map[string]interface{}, client *Client) {
 	roomID, ok := payload["roomId"].(string)
@@ -394,18 +441,26 @@ func (h *Hub) HandleJoinRoom(payload map[string]interface{}, client *Client) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	// Get room details to find creator
+	roomObjID, _ := primitive.ObjectIDFromHex(roomID)
+	var room data.Room
+	err := collection.FindOne(ctx, bson.M{"_id": roomObjID}).Decode(&room)
+	if err != nil {
+		log.Printf("❌ Failed to find room %s: %v", roomID, err)
+		return
+	}
+
 	// Get user info
 	usersCollection := data.GetCollection("users")
 	objID, _ := primitive.ObjectIDFromHex(userID)
 	var user data.User
-	err := usersCollection.FindOne(ctx, bson.M{"_id": objID}).Decode(&user)
+	err = usersCollection.FindOne(ctx, bson.M{"_id": objID}).Decode(&user)
 	if err != nil {
 		log.Printf("❌ Failed to find user %s: %v", userID, err)
 		return
 	}
 
 	// Add user to room members if not already present
-	roomObjID, _ := primitive.ObjectIDFromHex(roomID)
 	newMember := data.RoomMember{
 		UserID:      userID,
 		Username:    user.Username,
@@ -435,7 +490,45 @@ func (h *Hub) HandleJoinRoom(payload map[string]interface{}, client *Client) {
 	})
 	h.broadcastToSession(msg, roomID, nil)
 
+	// Send notification to room creator if they're not the one joining
+	if room.CreatorID != userID {
+		notificationMsg, _ := json.Marshal(Message{
+			Type: "room_joined",
+			Payload: map[string]interface{}{
+				"roomId":   roomID,
+				"roomName": room.Name,
+				"userId":   userID,
+				"username": user.Username,
+			},
+		})
+		h.sendToUser(room.CreatorID, notificationMsg)
+		log.Printf("📬 Sent join notification to room creator %s", room.CreatorID)
+	}
+
+	// Send existing positions of room members to the joining user
+	h.sendExistingPositions(client)
+
 	log.Printf("✅ User %s joined room %s", userID, roomID)
+}
+
+func (h *Hub) sendExistingPositions(client *Client) {
+	// Send positions of other clients in the same session
+	for c := range h.Clients {
+		if c.UserID == client.UserID {
+			continue // Don't send own position
+		}
+
+		// check if in same session (room or global)
+		if c.SessionID == client.SessionID {
+			if pos, ok := h.UserPositions[c.UserID]; ok {
+				msg, _ := json.Marshal(Message{
+					Type:    "move",
+					Payload: pos,
+				})
+				client.Send <- msg
+			}
+		}
+	}
 }
 
 // HandleLeaveRoom returns a client to the global session
@@ -449,16 +542,29 @@ func (h *Hub) HandleLeaveRoom(payload map[string]interface{}, client *Client) {
 	userID := client.UserID
 	log.Printf("👋 User %s leaving room %s", userID, roomID)
 
-	// Reset client's session ID to empty (global world)
-	client.SessionID = ""
-
-	// Remove user from room members in database
+	// Get room details before leaving
 	collection := data.GetCollection("rooms")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	roomObjID, _ := primitive.ObjectIDFromHex(roomID)
-	_, err := collection.UpdateOne(
+	var room data.Room
+	err := collection.FindOne(ctx, bson.M{"_id": roomObjID}).Decode(&room)
+	if err != nil {
+		log.Printf("❌ Failed to find room %s: %v", roomID, err)
+	}
+
+	// Get user info for notification
+	usersCollection := data.GetCollection("users")
+	objID, _ := primitive.ObjectIDFromHex(userID)
+	var user data.User
+	err = usersCollection.FindOne(ctx, bson.M{"_id": objID}).Decode(&user)
+
+	// Reset client's session ID to empty (global world)
+	client.SessionID = ""
+
+	// Remove user from room members in database
+	_, err = collection.UpdateOne(
 		ctx,
 		bson.M{"_id": roomObjID},
 		bson.M{"$pull": bson.M{"members": bson.M{"userId": userID}}},
@@ -477,5 +583,118 @@ func (h *Hub) HandleLeaveRoom(payload map[string]interface{}, client *Client) {
 	})
 	h.broadcastToSession(msg, roomID, nil)
 
+	// Send notification to room creator if they're not the one leaving
+	if err == nil && room.CreatorID != userID {
+		notificationMsg, _ := json.Marshal(Message{
+			Type: "room_left",
+			Payload: map[string]interface{}{
+				"roomId":   roomID,
+				"roomName": room.Name,
+				"userId":   userID,
+				"username": user.Username,
+			},
+		})
+		h.sendToUser(room.CreatorID, notificationMsg)
+		log.Printf("📬 Sent leave notification to room creator %s", room.CreatorID)
+	}
+
 	log.Printf("✅ User %s left room %s", userID, roomID)
+}
+
+// HandleSendMessage sends a private message to a specific user
+func (h *Hub) HandleSendMessage(payload map[string]interface{}, client *Client) {
+	receiverID, ok := payload["receiverId"].(string)
+	if !ok || receiverID == "" {
+		return
+	}
+	content, ok := payload["content"].(string)
+	if !ok || content == "" {
+		return
+	}
+
+	senderID := client.UserID
+
+	// Save to DB
+	msg := data.Message{
+		SenderID:   senderID,
+		ReceiverID: receiverID,
+		Content:    content,
+		Timestamp:  time.Now(),
+		Read:       false,
+	}
+
+	collection := data.GetCollection("messages")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	res, err := collection.InsertOne(ctx, msg)
+	if err != nil {
+		log.Printf("❌ Failed to save message: %v", err)
+		return
+	}
+	msg.ID = res.InsertedID.(primitive.ObjectID)
+
+	// Send to Receiver
+	outMsg, _ := json.Marshal(Message{
+		Type:    "message_received",
+		Payload: msg,
+	})
+	h.sendToUser(receiverID, outMsg)
+
+	// Send ack to Sender (so they know it was sent/saved with ID)
+	ackMsg, _ := json.Marshal(Message{
+		Type:    "message_sent",
+		Payload: msg,
+	})
+	client.Send <- ackMsg
+}
+
+// HandleFriendRequest sends a friend request
+func (h *Hub) HandleFriendRequest(payload map[string]interface{}, client *Client) {
+	receiverID, ok := payload["receiverId"].(string)
+	if !ok || receiverID == "" {
+		return
+	}
+
+	senderID := client.UserID
+
+	// Save to DB
+	req := data.FriendRequest{
+		SenderID:   senderID,
+		ReceiverID: receiverID,
+		Status:     "pending",
+		Timestamp:  time.Now(),
+	}
+
+	collection := data.GetCollection("friend_requests")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	res, err := collection.InsertOne(ctx, req)
+	if err != nil {
+		log.Printf("❌ Failed to save friend request: %v", err)
+		return
+	}
+	req.ID = res.InsertedID.(primitive.ObjectID)
+
+	// Send to Receiver
+	outMsg, _ := json.Marshal(Message{
+		Type:    "friend_request",
+		Payload: req,
+	})
+	h.sendToUser(receiverID, outMsg)
+}
+
+// sendToUser sends a message to a specific user by ID
+func (h *Hub) sendToUser(userID string, message []byte) {
+	for client := range h.Clients {
+		if client.UserID == userID {
+			select {
+			case client.Send <- message:
+			default:
+				close(client.Send)
+				delete(h.Clients, client)
+			}
+		}
+	}
 }

@@ -1,0 +1,211 @@
+Analyzing voxel...                                              
+
+   info • The imported package 'logging' isn't a dependency of the importing package • lib/core/webrtc_service.dart:8:8 • depend_on_referenced_packages
+warning • The value of the field '_ref' isn't used • lib/core/webrtc_service.dart:13:13 • unused_field
+warning • The value of the field '_uuid' isn't used • lib/core/webrtc_service.dart:19:14 • unused_field
+warning • The operand can't be 'null', so the condition is always 'false' • lib/core/webrtc_service.dart:86:21 • unnecessary_null_comparison
+warning • Dead code • lib/core/webrtc_service.dart:86:30 • dead_code
+   info • Unnecessary braces in a string interpolation • lib/core/webrtc_service.dart:138:49 • unnecessary_brace_in_string_interps
+   info • 'dispose' is deprecated and shouldn't be used. use stop() instead • lib/core/webrtc_service.dart:202:56 • deprecated_member_use
+  error • Missing concrete implementations of 'abstract class WorldRepository.respondToFriendRequest' and 'abstract class WorldRepository.subscribeNotifications' • lib/data/repositories/mock_world_repository.dart:7:7 • non_abstract_class_inherits_abstract_member
+  error • Undefined name '_userId' • lib/data/repositories/mock_world_repository.dart:47:5 • undefined_identifier
+warning • The method doesn't override an inherited method • lib/data/repositories/mock_world_repository.dart:92:8 • override_on_non_overriding_member
+warning • The method doesn't override an inherited method • lib/data/repositories/socket_world_repository.dart:429:8 • override_on_non_overriding_member
+   info • Don't invoke 'print' in production code • lib/data/services/mock_voice_chat_service.dart:40:5 • avoid_print
+   info • Don't invoke 'print' in production code • lib/data/services/mock_voice_chat_service.dart:59:5 • avoid_print
+   info • Don't invoke 'print' in production code • lib/data/services/mock_voice_chat_service.dart:67:5 • avoid_print
+   info • Don't invoke 'print' in production code • lib/data/services/mock_voice_chat_service.dart:78:5 • avoid_print
+   info • Don't invoke 'print' in production code • lib/data/services/mock_voice_chat_service.dart:83:5 • avoid_print
+warning • Unused import: 'dart:convert' • lib/data/services/webrtc_voice_service.dart:2:8 • unused_import
+warning • The value of the field '_isMuted' isn't used • lib/data/services/webrtc_voice_service.dart:20:8 • unused_field
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/painters/world_painter.dart:78:64 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/painters/world_painter.dart:79:65 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/painters/world_painter.dart:163:90 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/painters/world_painter.dart:174:48 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/painters/world_painter.dart:191:37 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/painters/world_painter.dart:249:37 • deprecated_member_use
+warning • The value of the local variable 'roadPaint' isn't used • lib/presentation/painters/world_painter.dart:284:11 • unused_local_variable
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/painters/world_painter.dart:301:60 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/painters/world_painter.dart:324:63 • deprecated_member_use
+   info • The imported package 'intl' isn't a dependency of the importing package • lib/presentation/screens/chat_screen.dart:4:8 • depend_on_referenced_packages
+warning • The declaration '_scrollToBottom' isn't referenced • lib/presentation/screens/chat_screen.dart:34:8 • unused_element
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/chat_screen.dart:241:34 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/create_event_screen.dart:134:54 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/create_event_screen.dart:145:45 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/create_event_screen.dart:170:51 • deprecated_member_use
+   info • Don't use 'BuildContext's across async gaps • lib/presentation/screens/create_event_screen.dart:252:17 • use_build_context_synchronously
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/create_event_screen.dart:269:57 • deprecated_member_use
+   info • Unnecessary use of string interpolation • lib/presentation/screens/create_event_screen.dart:276:19 • unnecessary_string_interpolations
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/create_event_screen.dart:316:64 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/create_event_screen.dart:354:55 • deprecated_member_use
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/presentation/screens/create_event_screen.dart:371:21 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/create_event_screen.dart:416:57 • deprecated_member_use
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/presentation/screens/create_event_screen.dart:449:19 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/event_details_screen.dart:134:53 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/event_details_screen.dart:180:22 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/event_details_screen.dart:182:41 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/game_setup_screen.dart:72:41 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/game_setup_screen.dart:90:65 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/game_setup_screen.dart:134:33 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/game_setup_screen.dart:197:65 • deprecated_member_use
+   info • Unnecessary use of 'toList' in a spread • lib/presentation/screens/game_setup_screen.dart:234:16 • unnecessary_to_list_in_spreads
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/game_setup_screen.dart:376:44 • deprecated_member_use
+warning • The value of the field '_selectedSeed' isn't used • lib/presentation/screens/login_screen.dart:25:10 • unused_field
+warning • The value of the local variable 'authState' isn't used • lib/presentation/screens/login_screen.dart:49:11 • unused_local_variable
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/login_screen.dart:64:48 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/login_screen.dart:104:49 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/onboarding_screen.dart:61:60 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/onboarding_screen.dart:74:60 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/onboarding_screen.dart:97:72 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/onboarding_screen.dart:97:104 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/onboarding_screen.dart:149:62 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/onboarding_screen.dart:193:42 • deprecated_member_use
+warning • Unused import: 'dart:math' • lib/presentation/screens/profile_screen.dart:7:8 • unused_import
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/profile_screen.dart:174:54 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/profile_screen.dart:235:59 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/profile_screen.dart:236:48 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/profile_screen.dart:262:41 • deprecated_member_use
+warning • Unused import: '../../domain/entities/user_profile.dart' • lib/presentation/screens/registration_screen.dart:7:8 • unused_import
+warning • The value of the local variable 'authState' isn't used • lib/presentation/screens/registration_screen.dart:54:11 • unused_local_variable
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/registration_screen.dart:77:48 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/registration_screen.dart:143:79 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/registration_screen.dart:143:111 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/registration_screen.dart:188:47 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/room_creation_screen.dart:185:69 • deprecated_member_use
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/presentation/screens/room_creation_screen.dart:220:23 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/room_creation_screen.dart:254:58 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/room_details_screen.dart:54:64 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/room_details_screen.dart:212:57 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/room_details_screen.dart:260:39 • deprecated_member_use
+   info • Don't use 'BuildContext's across async gaps • lib/presentation/screens/room_details_screen.dart:281:47 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/presentation/screens/room_details_screen.dart:282:54 • use_build_context_synchronously
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/room_details_screen.dart:296:64 • deprecated_member_use
+   info • Don't use 'BuildContext's across async gaps • lib/presentation/screens/room_details_screen.dart:349:48 • use_build_context_synchronously
+warning • The value of the local variable 'screenWidth' isn't used • lib/presentation/screens/splash_screen.dart:58:11 • unused_local_variable
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/splash_screen.dart:83:65 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/splash_screen.dart:88:65 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/splash_screen.dart:110:57 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/splash_screen.dart:141:61 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/splash_screen.dart:155:57 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/splash_screen.dart:163:59 • deprecated_member_use
+warning • Unused import: '../state/world_controller.dart' • lib/presentation/screens/voxel_picker_screen.dart:4:8 • unused_import
+warning • Unused import: '../../domain/entities/avatar_position.dart' • lib/presentation/screens/voxel_picker_screen.dart:8:8 • unused_import
+warning • The value of the local variable 'centerX' isn't used • lib/presentation/screens/voxel_picker_screen.dart:59:17 • unused_local_variable
+warning • The value of the local variable 'centerY' isn't used • lib/presentation/screens/voxel_picker_screen.dart:60:17 • unused_local_variable
+warning • The operand can't be 'null', so the condition is always 'true' • lib/presentation/screens/voxel_picker_screen.dart:73:59 • unnecessary_null_comparison
+warning • The '!' will have no effect because the receiver can't be null • lib/presentation/screens/voxel_picker_screen.dart:75:55 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null • lib/presentation/screens/voxel_picker_screen.dart:76:55 • unnecessary_non_null_assertion
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/voxel_picker_screen.dart:140:49 • deprecated_member_use
+warning • The value of the field '_userManuallyMovedMap' isn't used • lib/presentation/screens/world_screen.dart:63:8 • unused_field
+warning • The value of the field '_isFetchingRoute' isn't used • lib/presentation/screens/world_screen.dart:67:8 • unused_field
+warning • The declaration '_fetchRoute' isn't referenced • lib/presentation/screens/world_screen.dart:69:16 • unused_element
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:258:28 • deprecated_member_use
+   info • Statements in an if should be enclosed in a block • lib/presentation/screens/world_screen.dart:295:9 • curly_braces_in_flow_control_structures
+  error • The method 'zoomCamera' isn't defined for the type 'WorldController' • lib/presentation/screens/world_screen.dart:410:26 • undefined_method
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:563:68 • deprecated_member_use
+   info • Unnecessary use of multiple underscores • lib/presentation/screens/world_screen.dart:607:61 • unnecessary_underscores
+   info • Unnecessary use of multiple underscores • lib/presentation/screens/world_screen.dart:607:65 • unnecessary_underscores
+  error • The method 'enterEventWorld' isn't defined for the type 'WorldController' • lib/presentation/screens/world_screen.dart:731:32 • undefined_method
+   info • Statements in an if should be enclosed in a block • lib/presentation/screens/world_screen.dart:777:31 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentation/screens/world_screen.dart:788:29 • curly_braces_in_flow_control_structures
+  error • The method 'moveMyAvatar' isn't defined for the type 'WorldController' • lib/presentation/screens/world_screen.dart:830:32 • undefined_method
+  error • The method 'forcePositionSync' isn't defined for the type 'WorldController' • lib/presentation/screens/world_screen.dart:835:32 • undefined_method
+  error • The method 'exitEventWorld' isn't defined for the type 'WorldController' • lib/presentation/screens/world_screen.dart:872:34 • undefined_method
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:897:55 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:982:43 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:1028:60 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:1169:55 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:1173:53 • deprecated_member_use
+   info • Unnecessary use of 'toList' in a spread • lib/presentation/screens/world_screen.dart:1248:38 • unnecessary_to_list_in_spreads
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:1289:53 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:1297:37 • deprecated_member_use
+  error • The method 'toggleMute' isn't defined for the type 'WorldController' • lib/presentation/screens/world_screen.dart:1320:38 • undefined_method
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:1344:53 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:1347:55 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:1352:57 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:1416:43 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:1420:47 • deprecated_member_use
+  error • The method 'toggleGpsMode' isn't defined for the type 'WorldController' • lib/presentation/screens/world_screen.dart:1506:28 • undefined_method
+  error • The method 'toggleVisibility' isn't defined for the type 'WorldController' • lib/presentation/screens/world_screen.dart:1521:30 • undefined_method
+  error • The method 'enableLocationTracking' isn't defined for the type 'WorldController' • lib/presentation/screens/world_screen.dart:1574:32 • undefined_method
+  error • The method 'recenterCamera' isn't defined for the type 'WorldController' • lib/presentation/screens/world_screen.dart:1636:32 • undefined_method
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:1735:41 • deprecated_member_use
+  error • The method 'toggleGpsMode' isn't defined for the type 'WorldController' • lib/presentation/screens/world_screen.dart:1772:38 • undefined_method
+  error • The method 'toggleGpsMode' isn't defined for the type 'WorldController' • lib/presentation/screens/world_screen.dart:1775:38 • undefined_method
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:1816:32 • deprecated_member_use
+warning • The declaration '_showEventInfoDialog' isn't referenced • lib/presentation/screens/world_screen.dart:1841:8 • unused_element
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:2276:61 • deprecated_member_use
+   info • Statements in an if should be enclosed in a block • lib/presentation/screens/world_screen.dart:2458:21 • curly_braces_in_flow_control_structures
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:2556:41 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:2568:45 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:2579:49 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:2596:39 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:2657:37 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:2663:45 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:2705:32 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:2709:37 • deprecated_member_use
+warning • The declaration '_MapPinMarker' isn't referenced • lib/presentation/screens/world_screen.dart:2762:7 • unused_element
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:2812:43 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:2903:30 • deprecated_member_use
+warning • The declaration '_DirectionArrowPainter' isn't referenced • lib/presentation/screens/world_screen.dart:2912:7 • unused_element
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:2943:30 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:2955:30 • deprecated_member_use
+  error • The method 'zoomCamera' isn't defined for the type 'WorldController' • lib/presentation/screens/world_screen.dart:2994:63 • undefined_method
+  error • The method 'zoomCamera' isn't defined for the type 'WorldController' • lib/presentation/screens/world_screen.dart:2996:63 • undefined_method
+  error • The method 'panCamera' isn't defined for the type 'WorldController' • lib/presentation/screens/world_screen.dart:3013:16 • undefined_method
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:3073:39 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:3084:30 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:3116:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/world_screen.dart:3157:33 • deprecated_member_use
+warning • The value of the local variable 'updatedUser' isn't used • lib/presentation/state/auth_notifier.dart:73:13 • unused_local_variable
+warning • Unused import: 'package:flutter/foundation.dart' • lib/presentation/state/notification_service.dart:2:8 • unused_import
+warning • Unused import: '../../data/repositories/socket_world_repository.dart' • lib/presentation/state/notification_service.dart:4:8 • unused_import
+warning • Unused import: '../../data/services/webrtc_voice_service.dart' • lib/presentation/state/peers_provider.dart:6:8 • unused_import
+warning • Unused import: 'auth_notifier.dart' • lib/presentation/state/peers_provider.dart:8:8 • unused_import
+warning • Unused import: 'package:flutter_map/flutter_map.dart' • lib/presentation/state/room_controller.dart:2:8 • unused_import
+warning • Unused import: 'package:latlong2/latlong.dart' • lib/presentation/state/room_controller.dart:3:8 • unused_import
+warning • Unused import: 'peers_provider.dart' • lib/presentation/state/room_controller.dart:11:8 • unused_import
+warning • Unnecessary cast • lib/presentation/state/room_controller.dart:56:8 • unnecessary_cast
+warning • Unnecessary cast • lib/presentation/state/room_controller.dart:100:11 • unnecessary_cast
+  error • The method 'teleportAvatar' isn't defined for the type 'WorldController' • lib/presentation/state/room_controller.dart:119:55 • undefined_method
+warning • Unnecessary cast • lib/presentation/state/room_controller.dart:130:16 • unnecessary_cast
+warning • Unnecessary cast • lib/presentation/state/room_controller.dart:150:10 • unnecessary_cast
+  error • The method 'moveCameraTo' isn't defined for the type 'WorldController' • lib/presentation/state/room_controller.dart:212:49 • undefined_method
+warning • Unnecessary cast • lib/presentation/state/room_controller.dart:217:8 • unnecessary_cast
+warning • Unnecessary cast • lib/presentation/state/room_controller.dart:223:8 • unnecessary_cast
+  error • The superclass 'StateNotifier<WorldState>' doesn't have a zero argument constructor • lib/presentation/state/world_controller.dart:80:7 • no_default_super_constructor
+  error • Undefined name '_locationSubscription' • lib/presentation/state/world_controller.dart:108:5 • undefined_identifier
+  error • Undefined name '_peersSubscription' • lib/presentation/state/world_controller.dart:109:5 • undefined_identifier
+  error • Undefined name '_voiceSubscription' • lib/presentation/state/world_controller.dart:110:5 • undefined_identifier
+  error • Undefined name '_heartbeatTimer' • lib/presentation/state/world_controller.dart:111:5 • undefined_identifier
+  error • Undefined name '_worldRepository' • lib/presentation/state/world_controller.dart:112:5 • undefined_identifier
+  error • Too many positional arguments: 0 expected, but 5 found • lib/presentation/state/world_controller.dart:130:26 • extra_positional_arguments
+  error • The named parameter 'username' isn't defined • lib/presentation/state/world_controller.dart:130:82 • undefined_named_parameter
+  error • The named parameter 'avatarUrl' isn't defined • lib/presentation/state/world_controller.dart:130:102 • undefined_named_parameter
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/utils/voxel_engine.dart:50:30 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widgets/active_users_dialog.dart:137:73 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widgets/active_users_dialog.dart:145:53 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widgets/active_users_dialog.dart:219:50 • deprecated_member_use
+   info • Missing type annotation • lib/presentation/widgets/active_users_dialog.dart:245:26 • strict_top_level_inference
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widgets/custom_toast.dart:54:33 • deprecated_member_use
+   info • The imported package 'intl' isn't a dependency of the importing package • lib/presentation/widgets/discover_events_dialog.dart:4:8 • depend_on_referenced_packages
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widgets/discover_events_dialog.dart:59:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widgets/discover_events_dialog.dart:61:54 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widgets/discover_events_dialog.dart:110:53 • deprecated_member_use
+   info • Unnecessary use of multiple underscores • lib/presentation/widgets/discover_events_dialog.dart:183:59 • unnecessary_underscores
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widgets/discover_events_dialog.dart:245:33 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widgets/discover_events_dialog.dart:266:58 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widgets/discover_events_dialog.dart:364:56 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widgets/discover_events_dialog.dart:394:43 • deprecated_member_use
+warning • Unused import: '../screens/room_details_screen.dart' • lib/presentation/widgets/discover_rooms_dialog.dart:7:8 • unused_import
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/presentation/widgets/discover_rooms_dialog.dart:140:21 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widgets/discover_rooms_dialog.dart:198:47 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widgets/discover_rooms_dialog.dart:199:57 • deprecated_member_use
+  error • The method 'moveCameraTo' isn't defined for the type 'WorldController' • lib/presentation/widgets/discover_rooms_dialog.dart:307:84 • undefined_method
+   info • The imported package 'intl' isn't a dependency of the importing package • lib/presentation/widgets/notification_dialog.dart:4:8 • depend_on_referenced_packages
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widgets/notification_dialog.dart:47:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widgets/notification_dialog.dart:63:54 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widgets/room_marker.dart:29:39 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widgets/room_marker.dart:35:48 • deprecated_member_use
+
+207 issues found. (ran in 5.9s)

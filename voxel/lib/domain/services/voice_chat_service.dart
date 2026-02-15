@@ -16,6 +16,9 @@ abstract class VoiceChatService {
 
   /// Send audio chunk
   void sendAudioChunk(List<int> chunk);
+
+  /// Initiate a direct call to a peer
+  Future<void> initiateCall(String peerId);
 }
 
 enum VoiceChatStatus { disconnected, connecting, connected }

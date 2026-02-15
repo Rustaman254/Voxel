@@ -11,6 +11,7 @@ import 'world_controller.dart';
 import 'peers_provider.dart';
 import '../../data/repositories/socket_world_repository.dart';
 import 'auth_notifier.dart';
+import 'dart:math';
 
 class RoomState {
   final bool isLoading;
@@ -106,6 +107,20 @@ class RoomController extends StateNotifier<RoomState> {
        await _voiceService.joinChannel(roomId);
        
        state = state.copyWith(isLoading: false, currentRoom: room);
+
+       // Teleport to room location if it has virtual coordinates
+       // Add random offset to prevent stacking
+       if (room.x != 0 || room.y != 0) {
+          final random = Random();
+          // +/- 30 units variance
+          final offsetX = (random.nextDouble() - 0.5) * 60; 
+          final offsetY = (random.nextDouble() - 0.5) * 60;
+          
+          _ref.read(worldControllerProvider.notifier).teleportAvatar(
+             room.x + offsetX, 
+             room.y + offsetY
+          );
+       }
 
        // Initiate WebRTC calls to other members who might be in the room
        if (_voiceService is WebrtcVoiceService) {
