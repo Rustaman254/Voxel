@@ -4,7 +4,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../state/world_controller.dart';
 import '../state/notification_service.dart';
+import '../state/friends_provider.dart';
 import '../state/auth_notifier.dart';
+import '../../data/services/chat_database_service.dart';
+import 'package:uuid/uuid.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   final String peerId;
@@ -25,78 +28,61 @@ class ChatScreen extends ConsumerStatefulWidget {
 class _ChatScreenState extends ConsumerState<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final ChatDatabaseService _chatDb = ChatDatabaseService();
+  final _uuid = const Uuid();
+  
+  List<ChatMessage> _messages = [];
+  ChatMessage? _replyingTo;
   
   @override
   void initState() {
     super.initState();
+    _loadMessages();
+    _markAsRead();
+  }
+
+  Future<void> _loadMessages() async {
+    final myUserId = ref.read(authProvider).user?.id ?? '';
+    final messages = await _chatDb.getConversation(myUserId, widget.peerId);
+    
+    if (mounted) {
+      setState(() {
+        _messages = messages;
+      });
+      _scrollToBottom();
+    }
+  }
+
+  Future<void> _markAsRead() async {
+    final myUserId = ref.read(authProvider).user?.id ?? '';
+    await _chatDb.markAsRead(myUserId, widget.peerId);
   }
 
   void _scrollToBottom() {
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final notifications = ref.watch(notificationServiceProvider);
     final myUserId = ref.read(authProvider).user?.id ?? '';
     
-    // Filter messages for this conversation
-    // We treat notifications of type 'message' from peerId as incoming messages
-    // We also need to store outgoing messages locally or in a proper ChatProvider.
-    // For this phase, we might relying on NotificationService for incoming, 
-    // but outgoing needs to be managed. 
-    // Ideally, we'd have a specific ChatProvider. 
-    // Let's use a local list combined with notifications for now or just rely on the service.
-    // Actually, NotificationService is for *notifications*. 
-    // If we are in the chat, we might want to "consume" these notifications so they don't show as unread.
-    
-    // Let's filter incoming from notifications
-    final incomingMessages = notifications
-        .where((n) => n.type == 'message' && n.data['senderId'] == widget.peerId)
-        .map((n) => ChatMessage(
-              id: n.id,
-              senderId: n.data['senderId'],
-              text: n.body,
-              timestamp: n.timestamp,
-              isMe: false,
-            ))
-        .toList();
-        
-    // Usage of a local outgoing list + incoming notifications is tricky because of ordering.
-    // For a robust chat, we need a single source of truth (MessageRepository).
-    // Given the constraints, I will create a simple internal list that merges 
-    // incoming notifications and local sends.
-    // However, this simple state will reset on rebuild if not careful.
-    // Let's use the list from the build for now, sorted by time.
-    
-    // Note: This simple implementation implies that "outgoing" messages are not persisted 
-    // if we leave the screen unless we move this state to a Provider.
-    // Acceptance criteria: "Integrate with real-time WebSocket messages".
-    // I will stick to displaying what we receive via WS (which goes to NotificationService)
-    // and what we send (which we should add to a local list or a provider).
-    
-    // BETTER APPROACH: Use a `ChatProvider` family.
-    // But since I didn't create one in the plan, I'll stick to `ConsumerStatefulWidget` 
-    // and maybe just append sent messages to the local list, 
-    // and listen to `notificationServiceProvider` for incoming.
-    
-    // Mark messages as read when viewing
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final unreadIds = notifications
-          .where((n) => n.type == 'message' && n.data['senderId'] == widget.peerId && !n.isRead)
-          .map((n) => n.id)
+    // Listen to new messages from notifications
+    ref.listen(notificationServiceProvider, (previous, next) {
+      final newMessages = next
+          .where((n) => n.type == 'message' && n.data['senderId'] == widget.peerId)
           .toList();
       
-      if (unreadIds.isNotEmpty) {
-        for (final id in unreadIds) {
-          ref.read(notificationServiceProvider.notifier).markAsRead(id);
-        }
+      if (newMessages.isNotEmpty) {
+        _loadMessages();
+        _markAsRead();
       }
     });
 
@@ -106,7 +92,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Row(
@@ -126,7 +112,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               widget.peerName,
               style: GoogleFonts.outfit(
                 color: Colors.black,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w800,
                 fontSize: 16,
               ),
             ),
@@ -134,7 +120,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.phone_rounded, color: Colors.black),
+            icon: const Icon(Icons.phone_rounded, color: Colors.black, size: 22),
             onPressed: () {
                ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Audio call coming soon!')),
@@ -142,7 +128,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.videocam_rounded, color: Colors.black),
+            icon: const Icon(Icons.videocam_rounded, color: Colors.black, size: 24),
             onPressed: () {
                ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Video call coming soon!')),
@@ -154,38 +140,122 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       body: Column(
         children: [
           Expanded(
-            child: _buildMessageList(incomingMessages, myUserId),
+            child: _buildMessageList(myUserId),
           ),
+          if (_replyingTo != null)
+            _buildReplyPreview(),
           _buildInputArea(myUserId),
         ],
       ),
     );
   }
 
-  Widget _buildMessageList(List<ChatMessage> incoming, String myUserId) {
-    // We need to merge incoming with locally sent messages. 
-    // Since we don't have a persistent store for sent messages in this phase,
-    // we will maintain a static list or just use incoming for now.
-    // To make it functional for the demo, I will use a simple strategy:
-    // The `NotificationService` holds received messages. 
-    // Sent messages are not currently stored in `NotificationService`.
-    // I should probably add sent messages to `NotificationService` as "read" messages
-    // or keep a local list here. 
-    // Let's use a local list for sent messages for this session.
-    
-    final allMessages = [..._localSentMessages, ...incoming];
-    allMessages.sort((a, b) => b.timestamp.compareTo(a.timestamp)); // Newest first
+  Widget _buildReplyPreview() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        border: Border(
+          top: BorderSide(color: Colors.grey[300]!, width: 1),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 3,
+            height: 40,
+            decoration: const BoxDecoration(
+              color: Color(0xFFB452FF),
+              borderRadius: BorderRadius.all(Radius.circular(2)),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _replyingTo!.senderId == ref.read(authProvider).user?.id 
+                      ? 'You' 
+                      : widget.peerName,
+                  style: GoogleFonts.outfit(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFFB452FF),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _replyingTo!.message,
+                  style: GoogleFonts.outfit(
+                    fontSize: 13,
+                    color: Colors.grey[700],
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.close, size: 20),
+            onPressed: () {
+              setState(() {
+                _replyingTo = null;
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMessageList(String myUserId) {
+    if (_messages.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.chat_bubble_outline_rounded,
+              size: 64,
+              color: Colors.grey[300],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No messages yet',
+              style: GoogleFonts.outfit(
+                fontSize: 16,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Send a message to start the conversation',
+              style: GoogleFonts.outfit(
+                fontSize: 14,
+                color: Colors.grey[500],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final sortedMessages = List<ChatMessage>.from(_messages)
+      ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
     return ListView.builder(
       controller: _scrollController,
       reverse: true,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-      itemCount: allMessages.length,
+      itemCount: sortedMessages.length,
       itemBuilder: (context, index) {
-        final msg = allMessages[index];
-        final isMe = msg.isMe;
-        final showTime = index == allMessages.length - 1 || 
-            allMessages[index + 1].timestamp.difference(msg.timestamp).inMinutes.abs() > 5;
+        final msg = sortedMessages[index];
+        final isMe = msg.senderId == myUserId;
+        final showTime = index == sortedMessages.length - 1 || 
+            sortedMessages[index + 1].timestamp.difference(msg.timestamp).inMinutes.abs() > 5;
 
         return Column(
           children: [
@@ -194,33 +264,87 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Text(
                   DateFormat.jm().format(msg.timestamp),
-                  style: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 10),
-                ),
-              ),
-            Align(
-              alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-              child: Container(
-                constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-                margin: const EdgeInsets.symmetric(vertical: 4),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  gradient: isMe 
-                      ? const LinearGradient(colors: [Color(0xFFB452FF), Color(0xFF9B59B6)])
-                      : null,
-                  color: isMe ? null : const Color(0xFFF0F2F5),
-                  borderRadius: BorderRadius.only(
-                    topLeft: const Radius.circular(20),
-                    topRight: const Radius.circular(20),
-                    bottomLeft: isMe ? const Radius.circular(20) : const Radius.circular(4),
-                    bottomRight: isMe ? const Radius.circular(4) : const Radius.circular(20),
+                  style: GoogleFonts.outfit(
+                    color: Colors.grey[400],
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                child: Text(
-                  msg.text,
-                  style: GoogleFonts.outfit(
-                    color: isMe ? Colors.white : Colors.black87,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
+              ),
+            GestureDetector(
+              onLongPress: () {
+                setState(() {
+                  _replyingTo = msg;
+                });
+              },
+              child: Align(
+                alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                child: Container(
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width * 0.75,
+                  ),
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  child: Column(
+                    crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                    children: [
+                      if (msg.replyToMessage != null)
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 4),
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: isMe ? Colors.white.withOpacity(0.2) : Colors.grey[200],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 2,
+                                height: 30,
+                                color: isMe ? Colors.white : const Color(0xFFB452FF),
+                              ),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  msg.replyToMessage!,
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 12,
+                                    color: isMe ? Colors.white70 : Colors.grey[600],
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          gradient: isMe 
+                              ? const LinearGradient(
+                                  colors: [Color(0xFFB452FF), Color(0xFF9B59B6)],
+                                )
+                              : null,
+                          color: isMe ? null : const Color(0xFFF0F2F5),
+                          borderRadius: BorderRadius.only(
+                            topLeft: const Radius.circular(20),
+                            topRight: const Radius.circular(20),
+                            bottomLeft: isMe ? const Radius.circular(20) : const Radius.circular(4),
+                            bottomRight: isMe ? const Radius.circular(4) : const Radius.circular(20),
+                          ),
+                        ),
+                        child: Text(
+                          msg.message,
+                          style: GoogleFonts.outfit(
+                            color: isMe ? Colors.white : Colors.black87,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -254,7 +378,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               ),
               child: IconButton(
                 icon: const Icon(Icons.add_a_photo_rounded, color: Color(0xFFB452FF)),
-                onPressed: () {},
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Photo sharing coming soon!')),
+                  );
+                },
               ),
             ),
             const SizedBox(width: 8),
@@ -277,6 +405,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   style: GoogleFonts.outfit(color: Colors.black),
                   minLines: 1,
                   maxLines: 4,
+                  onSubmitted: (_) => _sendMessage(myUserId),
                 ),
               ),
             ),
@@ -298,77 +427,56 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
-  final List<ChatMessage> _localSentMessages = [];
-
-  void _sendMessage(String myUserId) {
+  Future<void> _sendMessage(String myUserId) async {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
 
-    final repo = ref.read(worldRepositoryProvider);
-    // Send via WebSocket (using the generic method or adding one)
-    // We need a proper method in WorldRepository or use custom payload
-    // assuming 'sendMessage' method exists in SocketWorldRepository implementation
-    // or we cast it.
-    
-    // Using the generic "send" if exposed or just "createEvent" hack? 
-    // No, we should prefer a dedicated method.
-    // I added HandleSendMessage in backend. 
-    // In SocketWorldRepository, I didn't explicitly add `sendMessageToPeer`.
-    // But there is `sendMessage(Map<String, dynamic> msg)`.
-    
-    // Let's use that.
-    /*
-      repo.sendMessage({
-        'type': 'send_message',
-        'payload': {
-           'receiverId': widget.peerId,
-           'content': text,
-        }
-      });
-    */
-    // Since `WorldRepository` interface doesn't have `sendMessage` (generic), 
-    // checking `socket_world_repository.dart`... it DOES have `sendMessage` public method but it's not in the interface.
-    // I should probably cast it or use `sendSignaling` if appropriate? No.
-    // I will use `dynamic` cast or fix the interface. 
-    // Fixing interface is better but I'll cast for speed now as I am in the component.
-    
+    final messageId = _uuid.v4();
+    final message = ChatMessage(
+      id: messageId,
+      senderId: myUserId,
+      receiverId: widget.peerId,
+      message: text,
+      timestamp: DateTime.now(),
+      isRead: false,
+      replyToId: _replyingTo?.id,
+      replyToMessage: _replyingTo?.message,
+    );
+
+    // Save to database
+    await _chatDb.saveMessage(message);
+
+    // Send via WebSocket
     try {
+      final repo = ref.read(worldRepositoryProvider);
       (repo as dynamic).sendMessage({
         'type': 'send_message',
         'payload': {
            'receiverId': widget.peerId,
            'content': text,
+           'messageId': messageId,
+           'replyToId': _replyingTo?.id,
+           'replyToMessage': _replyingTo?.message,
         }
       });
-      
-      setState(() {
-        _localSentMessages.add(ChatMessage(
-          id: DateTime.now().toString(),
-          senderId: myUserId,
-          text: text,
-          timestamp: DateTime.now(),
-          isMe: true,
-        ));
-        _messageController.clear();
-      });
     } catch (e) {
-      debugPrint('Failed to send message: $e');
+      debugPrint('Failed to send message via WebSocket: $e');
     }
+
+    // Update UI
+    setState(() {
+      _messages.add(message);
+      _messageController.clear();
+      _replyingTo = null;
+    });
+
+    _scrollToBottom();
   }
-}
 
-class ChatMessage {
-  final String id;
-  final String senderId;
-  final String text;
-  final DateTime timestamp;
-  final bool isMe;
-
-  ChatMessage({
-    required this.id,
-    required this.senderId,
-    required this.text,
-    required this.timestamp,
-    required this.isMe,
-  });
+  @override
+  void dispose() {
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
 }

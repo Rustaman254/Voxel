@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/repositories/world_repository.dart';
+import '../../data/services/chat_database_service.dart';
+import 'auth_notifier.dart';
 import 'world_controller.dart';
 
 // Notification Models
@@ -36,9 +38,13 @@ enum NotificationPriority {
 
 class NotificationService extends StateNotifier<List<AppNotification>> {
   final WorldRepository _worldRepository;
+  final Ref _ref;
+  final ChatDatabaseService _chatDatabaseService;
   StreamSubscription? _socketSubscription;
 
-  NotificationService(this._worldRepository) : super([]) {
+  NotificationService(this._worldRepository, this._ref) 
+      : _chatDatabaseService = ChatDatabaseService(),
+        super([]) {
     _initListeners();
   }
 
@@ -88,9 +94,23 @@ class NotificationService extends StateNotifier<List<AppNotification>> {
     final payload = message['payload'] ?? message;
     final senderId = payload['senderId'] ?? payload['senderID'] ?? '';
     final content = payload['content'] ?? 'You received a message';
+    final messageId = payload['id']?.toString() ?? DateTime.now().toString();
     
+    // SAVE TO DATABASE
+    final currentUserId = _ref.read(authProvider).user?.id;
+    if (currentUserId != null && senderId.isNotEmpty) {
+      _chatDatabaseService.saveMessage(ChatMessage(
+        id: messageId,
+        senderId: senderId,
+        receiverId: currentUserId,
+        message: content,
+        timestamp: DateTime.now(),
+        isRead: false,
+      ));
+    }
+
     final notification = AppNotification(
-      id: payload['id']?.toString() ?? DateTime.now().toString(),
+      id: messageId,
       type: 'message',
       title: 'New Message',
       body: content,
@@ -290,5 +310,5 @@ class NotificationService extends StateNotifier<List<AppNotification>> {
 
 final notificationServiceProvider = StateNotifierProvider<NotificationService, List<AppNotification>>((ref) {
   final repo = ref.watch(worldRepositoryProvider);
-  return NotificationService(repo);
+  return NotificationService(repo, ref);
 });

@@ -4,21 +4,14 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../domain/entities/user_profile.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:io' show Platform; // Added for Platform.isAndroid
+import '../../core/services/network_config_service.dart';
 
 class AuthRepository {
-  static String get _defaultUrl {
-    if (kIsWeb) return 'http://localhost:8080';
-    if (Platform.isAndroid) {
-      // 10.0.2.2 is for emulator, 192.168.1.4 is for physical device on local network
-      // TODO: Make this configurable via env or settings
-      return 'http://192.168.1.4:8080'; 
-    }
-    // For iOS simulators or physical devices on same network (manual IP needed for physical)
-    return 'http://192.168.1.4:8080';
+  String get baseUrl {
+    final service = NetworkConfigService();
+    // Initialize if not already done (lazy load fallback)
+    return service.apiBaseUrl;
   }
-  final String _baseUrl = const String.fromEnvironment('API_URL', defaultValue: '');
-  
-  String get baseUrl => _baseUrl.isNotEmpty ? _baseUrl : _defaultUrl;
   final _storage = const FlutterSecureStorage();
   
   static const String _tokenKey = 'auth_token';

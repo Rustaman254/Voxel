@@ -24,17 +24,22 @@ import 'game_setup_screen.dart';
 import '../../domain/models/event_model.dart';
 import '../../domain/entities/avatar_position.dart';
 import '../widgets/discover_events_dialog.dart';
-import '../widgets/discover_rooms_dialog.dart';
+import 'discover_screen.dart';
 import '../widgets/active_users_dialog.dart';
 
 import 'chat_screen.dart';
 import 'profile_screen.dart';
+import 'messages_list_screen.dart';
 import 'room_creation_screen.dart';
 import 'room_details_screen.dart';
 import '../widgets/notification_dialog.dart';
 import '../state/notification_service.dart';
 import '../state/room_controller.dart';
 import '../widgets/room_marker.dart';
+import '../state/friends_provider.dart';
+import 'friends_list_screen.dart';
+import '../widgets/shake_animated_widget.dart';
+import 'package:heroicons/heroicons.dart';
 
 class WorldScreen extends ConsumerStatefulWidget {
   const WorldScreen({super.key});
@@ -65,6 +70,9 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
   // Routing
   List<LatLng> _routePoints = [];
   bool _isFetchingRoute = false;
+
+  // Bottom Navigation
+  int _selectedNavIndex = 0;
 
   Future<void> _fetchRoute(LatLng destination) async {
     final myPos = ref.read(worldControllerProvider).myPosition;
@@ -380,6 +388,7 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
         worldState.isGpsMode && (worldState.myPosition?.latitude == 0);
 
     return Scaffold(
+      extendBody: true,
       backgroundColor: Colors.white,
       body: LayoutBuilder(
         builder: (context, constraints) {
@@ -863,6 +872,122 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                     ),
                     child: Row(
                       children: [
+                        // NOTIFICATION ICON (TOP LEFT)
+                        Consumer(
+                          builder: (context, ref, child) {
+                            final unreadCount = ref.watch(notificationServiceProvider.notifier).unreadCount;
+                            return Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.1),
+                                        blurRadius: 10,
+                                        spreadRadius: 2,
+                                      ),
+                                    ],
+                                  ),
+                                  child: GestureDetector(
+                                    onTap: () => showDialog(
+                                      context: context,
+                                      builder: (c) => const NotificationDialog(),
+                                    ),
+                                    child: const Icon(
+                                      Icons.notifications_rounded,
+                                      color: Color(0xFFB452FF),
+                                      size: 24,
+                                    ),
+                                  ),
+                                ),
+                                if (unreadCount > 0)
+                                  Positioned(
+                                    top: -2,
+                                    right: -2,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: const BoxDecoration(
+                                        color: Colors.red,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Text(
+                                        unreadCount > 9 ? '9+' : '$unreadCount',
+                                        style: GoogleFonts.outfit(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            );
+                          },
+                        ),
+                        const SizedBox(width: 12),
+                        // FRIENDS ICON (New)
+                        Consumer(
+                          builder: (context, ref, child) {
+                            final requestsCount = ref.watch(friendsProvider).pendingRequests.length;
+                            return Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.1),
+                                        blurRadius: 10,
+                                        spreadRadius: 2,
+                                      ),
+                                    ],
+                                  ),
+                                  child: GestureDetector(
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (c) => const FriendsListScreen(),
+                                      ),
+                                    ),
+                                    child: const Icon(
+                                      Icons.people_alt_rounded,
+                                      color: Color(0xFFB452FF),
+                                      size: 24,
+                                    ),
+                                  ),
+                                ),
+                                if (requestsCount > 0)
+                                  Positioned(
+                                    top: -2,
+                                    right: -2,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: const BoxDecoration(
+                                        color: Colors.red,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Text(
+                                        requestsCount > 9 ? '9+' : '$requestsCount',
+                                        style: GoogleFonts.outfit(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            );
+                          },
+                        ),
+                        const SizedBox(width: 12),
                         // NAVIGATION & TITLE
                         if (activeEventId != null && !worldState.isGpsMode)
                           _CircleActionButton(
@@ -870,14 +995,6 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                             onPressed: () => ref
                                 .read(worldControllerProvider.notifier)
                                 .exitEventWorld(),
-                          )
-                        else
-                          _CircleActionButton(
-                            icon: Icons.explore,
-                            onPressed: () => showDialog(
-                              context: context,
-                              builder: (context) => const DiscoverRoomsDialog(),
-                            ),
                           ),
 
                         if (activeEventId != null &&
@@ -910,57 +1027,6 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                           ),
                         ],
                         const Spacer(),
-                        // PROFILE SECTION TOP RIGHT
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFB452FF), // Primary color
-                            borderRadius: BorderRadius.circular(50),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const SizedBox(width: 4),
-                                VoxelAvatar(
-                                  radius: 18,
-                                  avatarUrl: ref.watch(authProvider).user?.avatarUrl,
-                                  displayName: ref.watch(authProvider).user?.displayName,
-                                ),
-                              const SizedBox(width: 10),
-                              ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  maxWidth: 100,
-                                ),
-                                child: Text(
-                                  ref.watch(authProvider).user?.displayName ??
-                                      'User',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 14,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              IconButton(
-                                constraints: const BoxConstraints(),
-                                padding: const EdgeInsets.all(8),
-                                icon: const Icon(
-                                  Icons.logout,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                                onPressed: () =>
-                                    ref.read(authProvider.notifier).logout(),
-                              ),
-                            ],
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -1260,146 +1326,181 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                 })(),
               ],
 
-              // 6. HUD - Bottom Bar
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-                bottom: isCameraAtPlayer ? 0 : -120,
-                left: 0,
-                right: 0,
-                child: SafeArea(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
-                    ),
-                    child: Row(
-                      children: [
-                        // SQUARE MIC BUTTON
-                        Container(
-                          width: 56,
-                          height: 56,
-                          decoration: BoxDecoration(
-                            color: isTalking
-                                ? const Color(0xFFB452FF)
-                                : Colors.grey[300],
-                            borderRadius: BorderRadius.circular(28),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              ),
-                              if (isTalking)
-                                BoxShadow(
-                                  color: const Color(
-                                    0xFFB452FF,
-                                  ).withOpacity(0.6),
-                                  blurRadius: 20,
-                                  spreadRadius: 5,
-                                ),
-                            ],
-                          ),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(28),
-                              onTap: () {
-                                if (worldState.isMuted &&
-                                    worldState.isManuallyMuted == false) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Unmuted. You will talk automatically when someone is near.',
-                                      ),
-                                    ),
-                                  );
-                                }
-                                ref
-                                    .read(worldControllerProvider.notifier)
-                                    .toggleMute();
-                              },
-                              child: Icon(
-                                worldState.isMuted ? Icons.mic_off : Icons.mic,
-                                color: isTalking
-                                    ? Colors.white
-                                    : (worldState.isMuted
-                                          ? Colors.red
-                                          : Colors.black54),
-                                size: 28,
-                              ),
-                            ),
-                          ),
+              // 6. Top Right Connection Status
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 20,
+                right: 20,
+                child: Container(
+                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                   decoration: BoxDecoration(
+                     color: Colors.white,
+                     borderRadius: BorderRadius.circular(30),
+                     boxShadow: [
+                       BoxShadow(
+                         color: Colors.black.withOpacity(0.1),
+                         blurRadius: 10,
+                       )
+                     ]
+                   ),
+                   child: Text(
+                     connectionTitle,
+                     style: GoogleFonts.outfit(
+                       fontWeight: FontWeight.bold,
+                       fontSize: 14,
+                       color: Colors.black
+                     ),
+                   ),
+                ),
+              ),
+
+              // 7. Custom Bottom Navigation with Floating Mic
+              Positioned(
+                left: 20,
+                right: 20,
+                bottom: 30,
+                child: SizedBox(
+                  height: 120, // Increased height area to allow spill over
+                  child: Stack(
+                    alignment: Alignment.bottomCenter,
+                    clipBehavior: Clip.none,
+                    children: [
+                      // Nav Bar Background
+                      Container(
+                        height: 60,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(30),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 10,
+                              offset: const Offset(0, 5),
+                            )
+                          ],
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(50),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                             // Home
+                             Expanded(
+                               child: _buildFloatingNavItem(
+                                 heroIcon: HeroIcons.home,
+                                 isSelected: _selectedNavIndex == 0,
+                                 onTap: () => setState(() => _selectedNavIndex = 0),
+                               ),
+                             ),
+                             
+                             // Discover (New)
+                             Expanded(
+                               child: _buildFloatingNavItem(
+                                 heroIcon: HeroIcons.globeAlt,
+                                 isSelected: _selectedNavIndex == 1,
+                                 onTap: () {
+                                   setState(() => _selectedNavIndex = 1);
+                                   Navigator.push(
+                                     context,
+                                     MaterialPageRoute(
+                                       builder: (context) => const DiscoverScreen(),
+                                     ),
+                                   ).then((_) {
+                                     setState(() => _selectedNavIndex = 0);
+                                   });
+                                 },
+                               ),
+                             ),
+
+                             // Space for Mic (Only if Mic is visible)
+                             if (!worldState.isGpsMode)
+                               const SizedBox(width: 80), 
+
+                             // Messages
+                             Expanded(
+                               child: Consumer(
+                                 builder: (context, ref, _) {
+                                   final unreadCount = ref.watch(notificationServiceProvider).where((n) => n.type == 'message' && !n.isRead).length; 
+                                   // Note: notificationService state is List<AppNotification>
+                                   
+                                   return ShakeAnimatedWidget(
+                                     isShaking: unreadCount > 0,
+                                     startDelay: const Duration(seconds: 3),
+                                     child: _buildFloatingNavItem(
+                                        heroIcon: HeroIcons.chatBubbleLeftRight,
+                                        isSelected: _selectedNavIndex == 2,
+                                        badgeCount: unreadCount,
+                                        onTap: () {
+                                          setState(() => _selectedNavIndex = 2);
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => const MessagesListScreen(),
+                                            ),
+                                          ).then((_) {
+                                            setState(() => _selectedNavIndex = 0);
+                                          });
+                                        },
+                                     ),
+                                   );
+                                 }
+                               ),
+                             ),
+                             
+                             // Profile
+                             Expanded(
+                               child: _buildFloatingNavItemWithAvatar(
+                                 isSelected: _selectedNavIndex == 3,
+                                 onTap: () {
+                                   setState(() => _selectedNavIndex = 3);
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => const ProfileScreen(),
+                                      ),
+                                    ).then((_) {
+                                      setState(() => _selectedNavIndex = 0);
+                                    });
+                                 }
+                               ),
+                             ),
+                          ],
+                        ),
+                      ),
+                      
+                      // Floating Mic Button - Only in Virtual Mode
+                      if (!worldState.isGpsMode)
+                        Positioned(
+                          bottom: -15, 
+                          child: GestureDetector(
+                            onTap: () {
+                               if (worldState.isMuted && worldState.isManuallyMuted == false) {
+                                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Unmuted. You will talk automatically when someone is near.')));
+                               }
+                               ref.read(worldControllerProvider.notifier).toggleMute();
+                            },
                             child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
+                              width: 90, // Bigger than nav bar (which is 60 high)
+                              height: 90,
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.7),
-                                borderRadius: BorderRadius.circular(50),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.5),
-                                  width: 1.5,
-                                ),
+                                color: isTalking ? Colors.grey[300] : Colors.red,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 6),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
-                                    blurRadius: 20,
-                                  ),
-                                ],
+                                    color: Colors.black.withOpacity(0.3),
+                                    blurRadius: 15,
+                                    offset: const Offset(0, 8),
+                                  )
+                                ]
                               ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          connectionTitle,
-                                          style: GoogleFonts.outfit(
-                                            color: Colors.black,
-                                            fontWeight: FontWeight.w900,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                        if (isTalking &&
-                                            connectedNames.isEmpty &&
-                                            !isNearSomeone)
-                                          Text(
-                                            'No one can hear you',
-                                            style: GoogleFonts.outfit(
-                                              color: Colors.orange[800],
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          )
-                                        else if (connectedNames.isNotEmpty)
-                                          Text(
-                                            'Live Connection - Snapsnatch Proximity',
-                                            style: GoogleFonts.outfit(
-                                              color: const Color(0xFFB452FF),
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
+                              child: Icon(
+                                worldState.isMuted ? Icons.mic_off : Icons.mic,
+                                color: isTalking ? Colors.red : Colors.white,
+                                size: 40,
                               ),
                             ),
                           ),
                         ),
-                      ],
-                    ),
+                    ],
                   ),
                 ),
               ),
@@ -1452,45 +1553,22 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                 bottom: 120,
                 child: Column(
                   children: [
-                    // NOTIFICATIONS
-                    Consumer(
-                      builder: (context, ref, child) {
-                        final unreadCount = ref.watch(notificationServiceProvider.notifier).unreadCount;
-                        return Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            _buildSideButton(
-                              icon: Icons.notifications,
-                              color: Colors.amber, 
-                              onTap: () => showDialog(
-                                context: context,
-                                builder: (c) => const NotificationDialog(),
-                              ),
-                              label: 'ALERTS',
-                            ),
-                            if (unreadCount > 0)
-                              Positioned(
-                                top: -2,
-                                right: -2,
-                                child: Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: const BoxDecoration(
-                                    color: Colors.red,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Text(
-                                    unreadCount > 9 ? '9+' : '$unreadCount',
-                                    style: GoogleFonts.outfit(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                          ],
-                        );
+                    // GPS CENTER (Replaces Alerts in GPS Mode)
+                    if (worldState.isGpsMode)
+                    _buildSideButton(
+                      icon: Icons.my_location,
+                      color: Colors.white,
+                      iconColor: Colors.black,
+                      onTap: () {
+                         if (worldState.myPosition != null) {
+                           _mapController.move(
+                             LatLng(worldState.myPosition!.latitude, worldState.myPosition!.longitude),
+                             18.0
+                           );
+                           setState(() => _userManuallyMovedMap = false);
+                         }
                       },
+                      label: 'CENTER',
                     ),
                     const SizedBox(height: 16),
                     // GPS SYNC TOGGLE
@@ -1522,74 +1600,19 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                         label: worldState.isVisibleOnMap ? 'VISIBLE' : 'HIDDEN',
                       ),
                     if (worldState.isGpsMode) const SizedBox(height: 16),
-                    // TRACK USERS (Only in GPS mode)
-                    if (worldState.isGpsMode)
-                      _buildSideButton(
-                        icon: Icons.people,
-                        color: worldState.trackedUserIds.isEmpty
-                            ? Colors.blue
-                            : const Color(0xFFB452FF),
-                        onTap: () => _showUserTrackingDialog(
-                          context,
-                          ref,
-                          filteredPeers,
-                          worldState,
-                        ),
-                        label: worldState.trackedUserIds.isEmpty
-                            ? 'TRACK ALL'
-                            : 'TRACKING',
-                      ),
-                    if (worldState.isGpsMode) const SizedBox(height: 16),
-                    // DISCOVER EVENTS (GPS Mode)
-                    if (worldState.isGpsMode) ...[
-                      _buildSideButton(
-                        icon: Icons.calendar_month,
-                        color: const Color(0xFFB452FF),
-                        onTap: () => _showEventDiscovery(context, ref, events),
-                        label: 'EVENTS',
-                      ),
-                      const SizedBox(height: 16),
-                    ],
                     // ACTIVE USERS (Visitors)
                     _buildSideButton(
                       icon: Icons.people_alt_rounded,
                       color: Colors.blue,
-                      onTap: () => showDialog(
-                        context: context, 
+                      onTap: () => showModalBottomSheet(
+                        context: context,
+                        backgroundColor: Colors.transparent,
+                        isScrollControlled: true,
                         builder: (c) => const ActiveUsersDialog(),
                       ),
                       label: 'VISITORS',
                     ),
                     const SizedBox(height: 16),
-                    // LOCATE ME (Manual Trigger)
-                    if (worldState.isGpsMode) ...[
-                      _buildSideButton(
-                        icon: Icons.my_location,
-                        color: Colors.white,
-                        iconColor: Colors.black87,
-                        onTap: () async {
-                          // Refresh location and center map on user position
-                          await ref
-                              .read(worldControllerProvider.notifier)
-                              .enableLocationTracking();
-                          // Reset manual move flag and center map
-                          _userManuallyMovedMap = false;
-                          if (worldState.myPosition != null &&
-                              worldState.myPosition!.latitude != 0 &&
-                              worldState.myPosition!.longitude != 0) {
-                            _mapController.move(
-                              LatLng(
-                                worldState.myPosition!.latitude,
-                                worldState.myPosition!.longitude,
-                              ),
-                              15.0,
-                            );
-                          }
-                        },
-                        label: 'LOCATE',
-                      ),
-                      const SizedBox(height: 16),
-                    ],
                     // PLAY WITH FRIENDS
                     _buildSideButton(
                       icon: Icons.sports_esports_rounded,
@@ -1795,6 +1818,7 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
     );
   }
 
+
   Widget _buildSideButton({
     required IconData icon,
     required Color color,
@@ -1835,6 +1859,98 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
           ),
         ),
       ],
+    );
+  }
+
+
+
+  Widget _buildFloatingNavItem({
+    required HeroIcons heroIcon,
+    required bool isSelected,
+    required VoidCallback onTap,
+    int badgeCount = 0,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              HeroIcon(
+                heroIcon,
+                size: 24,
+                color: isSelected ? const Color(0xFFB452FF) : Colors.grey[400],
+              ),
+              if (badgeCount > 0)
+                Positioned(
+                  top: -6,
+                  right: -6,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 1.5),
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
+                    child: Center(
+                      child: Text(
+                        badgeCount > 9 ? '9+' : '$badgeCount',
+                        style: GoogleFonts.outfit(
+                          color: Colors.white,
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          if (isSelected)
+            Container(
+              width: 6,
+              height: 6,
+              decoration: const BoxDecoration(
+                color: Color(0xFFB452FF),
+                shape: BoxShape.circle,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFloatingNavItemWithAvatar({
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    final user = ref.watch(authProvider).user;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 50,
+        height: 50,
+        decoration: BoxDecoration(
+          color: isSelected 
+              ? const Color(0xFFB452FF).withOpacity(0.15)
+              : Colors.transparent,
+          shape: BoxShape.circle,
+        ),
+        child: Center(
+          child: VoxelAvatar(
+            radius: 16,
+            avatarUrl: user?.avatarUrl,
+            displayName: user?.displayName,
+          ),
+        ),
+      ),
     );
   }
 

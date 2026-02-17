@@ -13,14 +13,15 @@ const (
 	writeWait      = 10 * time.Second
 	pongWait       = 60 * time.Second
 	pingPeriod     = (pongWait * 9) / 10
-	maxMessageSize = 1024 * 1024 * 2 // 2MB for large audio chunks
+	maxMessageSize = 2 * 1024 * 1024 // 2MB for large audio chunks
 )
 
 var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
+	ReadBufferSize:  2048,
+	WriteBufferSize: 2048,
 	CheckOrigin: func(r *http.Request) bool {
-		return true // Allow all for now
+		// In production, you'd want a more secure check
+		return true
 	},
 }
 
@@ -54,10 +55,15 @@ func (c *Client) readPump() {
 	defer func() {
 		c.Hub.Unregister <- c
 		c.Conn.Close()
+		log.Printf("Client %s unregistered and connection closed.", c.UserID)
 	}()
 	c.Conn.SetReadLimit(maxMessageSize)
 	c.Conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.Conn.SetPongHandler(func(string) error { c.Conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+	c.Conn.SetPongHandler(func(string) error {
+		c.Conn.SetReadDeadline(time.Now().Add(pongWait))
+		log.Printf("Pong received from client %s", c.UserID)
+		return nil
+	})
 	for {
 		_, message, err := c.Conn.ReadMessage()
 		if err != nil {
@@ -66,6 +72,9 @@ func (c *Client) readPump() {
 			}
 			break
 		}
+
+		// Log received message
+		log.Printf("Received message from %s: %s", c.UserID, string(message))
 
 		// Unmarshal generic message
 		var msg Message

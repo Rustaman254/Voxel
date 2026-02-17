@@ -107,5 +107,10 @@ class MockWorldRepository implements WorldRepository {
   }
 
   @override
+  Future<void> sendFriendRequest(String targetUserId) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+  }
+
+  @override
   void sendMessage(Map<String, dynamic> data) {}
 }

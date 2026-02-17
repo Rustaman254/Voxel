@@ -6,8 +6,11 @@ import 'presentation/screens/login_screen.dart';
 import 'presentation/screens/world_screen.dart';
 import 'presentation/screens/onboarding_screen.dart';
 import 'presentation/screens/splash_screen.dart';
+import 'core/services/network_config_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await NetworkConfigService().init();
   runApp(
     const ProviderScope(child: VoxelApp()),
   );

@@ -6,6 +6,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/io.dart';
 import '../../domain/entities/avatar_position.dart';
 import '../../domain/repositories/world_repository.dart';
+import '../../core/services/network_config_service.dart';
 
 class SocketWorldRepository implements WorldRepository {
   WebSocketChannel? _channel;
@@ -15,14 +16,10 @@ class SocketWorldRepository implements WorldRepository {
   final Map<String, AvatarPosition> _peers = {};
   
   // Determine URL based on platform/build config
-  static String get _defaultWsUrl {
-    if (kIsWeb) return 'ws://localhost:8080/ws';
-    if (defaultTargetPlatform == TargetPlatform.android) return 'ws://192.168.1.4:8080/ws';
-    return 'ws://192.168.1.4:8080/ws';
+  String get wsUrl {
+    final service = NetworkConfigService();
+    return service.wsBaseUrl;
   }
-  final String _wsUrl = const String.fromEnvironment('WS_URL', defaultValue: '');
-
-  String get wsUrl => _wsUrl.isNotEmpty ? _wsUrl : _defaultWsUrl;
 
   final _statusController = StreamController<bool>.broadcast();
   final _audioController = StreamController<Map<String, dynamic>>.broadcast();
@@ -498,5 +495,13 @@ class SocketWorldRepository implements WorldRepository {
   @override
   void sendMessage(Map<String, dynamic> msg) {
     _send(msg);
+  }
+
+  @override
+  Future<void> sendFriendRequest(String targetUserId) async {
+     _send({
+      'type': 'send_friend_request',
+      'payload': {'targetUserId': targetUserId}
+    });
   }
 }

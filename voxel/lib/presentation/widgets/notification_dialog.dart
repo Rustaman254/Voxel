@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../state/notification_service.dart';
 import '../state/world_controller.dart';
+import '../screens/chat_screen.dart';
+import '../screens/friends_list_screen.dart';
 
 class NotificationDialog extends ConsumerStatefulWidget {
   const NotificationDialog({super.key});
@@ -198,47 +200,32 @@ class _NotificationDialogState extends ConsumerState<NotificationDialog> with Si
                 )
               : null,
             onTap: () {
-              // Handle tap action (open chat or accept request)
+              Navigator.pop(context); // Close dialog first
+
               if (isMessage) {
-                // Navigate to chat (To be implemented)
-                Navigator.pop(context); // Close dialog
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Use chat bubble to chat!')),
-                );
-              } else {
-                // Determine request ID
-                final requestId = item.id;
+                final senderId = item.data['senderId'];
+                final senderName = item.data['senderName'] ?? 'User'; // Fallback
                 
-                showDialog(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    title: const Text('Friend Request'),
-                    content: Text('Do you want to accept ${item.title}?'), // Title is mostly just "Friend Request" but let's assume body has name or use data
-                    actions: [
-                      TextButton(
-                        onPressed: () {
-                          // Reject
-                          ref.read(notificationServiceProvider.notifier).clearNotification(item.id);
-                          ref.read(worldRepositoryProvider).respondToFriendRequest(requestId, 'reject');
-                          Navigator.pop(ctx);
-                        },
-                        child: const Text('Decline', style: TextStyle(color: Colors.red)),
+                if (senderId != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (c) => ChatScreen(
+                        peerId: senderId,
+                        peerName: senderName,
                       ),
-                      ElevatedButton(
-                        onPressed: () {
-                           // Accept
-                           ref.read(notificationServiceProvider.notifier).clearNotification(item.id);
-                           ref.read(worldRepositoryProvider).respondToFriendRequest(requestId, 'accept');
-                           Navigator.pop(ctx);
-                           Navigator.pop(context); // Close notification dialog
-                           ScaffoldMessenger.of(context).showSnackBar(
-                             const SnackBar(content: Text('Friend request accepted!')),
-                           );
-                        },
-                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFB452FF), foregroundColor: Colors.white),
-                        child: const Text('Accept'),
-                      ),
-                    ],
+                    ),
+                  );
+                } else {
+                   // Fallback to list
+                   // Navigator.push(context, MaterialPageRoute(builder: (c) => const MessagesListScreen()));
+                }
+              } else {
+                // Open Friends List (Requests Tab)
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (c) => const FriendsListScreen(),
                   ),
                 );
               }

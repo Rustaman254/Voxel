@@ -4,19 +4,13 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:io' show Platform;
 import '../../domain/entities/room.dart';
+import '../../core/services/network_config_service.dart';
 
 class RoomRepository {
-  static String get _defaultUrl {
-    if (kIsWeb) return 'http://localhost:8080';
-    if (Platform.isAndroid) {
-      return 'http://192.168.1.4:8080';
-    }
-    return 'http://192.168.1.4:8080';
+  String get baseUrl {
+    final service = NetworkConfigService();
+    return service.apiBaseUrl;
   }
-
-  final String _baseUrl = const String.fromEnvironment('API_URL', defaultValue: '');
-  
-  String get baseUrl => _baseUrl.isNotEmpty ? _baseUrl : _defaultUrl;
   final _storage = const FlutterSecureStorage();
   static const String _tokenKey = 'auth_token';
 

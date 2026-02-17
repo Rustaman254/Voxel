@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'dart:io' show Platform;
 import 'auth_notifier.dart';
+import '../../core/services/network_config_service.dart';
 
 class EventRegistrationNotifier extends StateNotifier<Set<String>> {
   final Ref _ref;
@@ -13,11 +14,8 @@ class EventRegistrationNotifier extends StateNotifier<Set<String>> {
   }
 
   static String get _baseUrl {
-    if (kIsWeb) return 'http://localhost:8080';
-    if (Platform.isAndroid) {
-      return 'http://192.168.1.4:8080'; 
-    }
-    return 'http://192.168.1.4:8080';
+    final service = NetworkConfigService();
+    return service.apiBaseUrl;
   }
 
   Future<void> _fetchRegisteredEvents() async {
