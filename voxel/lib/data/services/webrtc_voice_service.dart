@@ -190,31 +190,49 @@ class WebrtcVoiceService implements VoiceChatService {
         },
       ],
       'sdpSemantics': 'unified-plan',
-      'iceTransportPolicy': 'relay',
+      'iceTransportPolicy': 'all', // Changed from 'relay' to allow direct connections
     };
 
     final pc = await createPeerConnection(configuration);
 
-    // Set Opus as the preferred codec
-    final transceivers = await pc.getTransceivers();
-    for (var t in transceivers) {
-      if (t.sender.track?.kind == 'audio') {
-        // Manually create RTCRtpCodecCapability for Opus
-        final RTCRtpCodecCapability opusCodec = RTCRtpCodecCapability(
-          mimeType: 'audio/opus',
-          clockRate: 48000,
-          channels: 2, // Opus typically uses 2 channels
-        );
-        
-        await t.setCodecPreferences([opusCodec]);
-        debugPrint('✅ Opus codec set as preferred for audio transceiver.');
+    // Add local stream tracks FIRST before setting codec preferences
+    if (_localStream != null) {
+      final tracks = _localStream!.getTracks();
+      debugPrint('📡 Adding ${tracks.length} local tracks to peer connection');
+      
+      for (var track in tracks) {
+        debugPrint('🎵 Track: ${track.kind}, enabled: ${track.enabled}, id: ${track.id}');
+        await pc.addTrack(track, _localStream!);
       }
+    } else {
+      debugPrint('⚠️ No local stream available when creating peer connection');
     }
-    
-    // Add local stream tracks
-    _localStream?.getTracks().forEach((track) {
-      pc.addTrack(track, _localStream!);
-    });
+
+    // Set Opus as the preferred codec (after adding tracks)
+    try {
+      final transceivers = await pc.getTransceivers();
+      debugPrint('🔧 Found ${transceivers.length} transceivers');
+      
+      for (var t in transceivers) {
+        if (t.sender.track?.kind == 'audio') {
+          // Create Opus codec preference
+          final opusCodec = RTCRtpCodecCapability(
+            mimeType: 'audio/opus',
+            clockRate: 48000,
+            channels: 2,
+          );
+          
+          try {
+            await t.setCodecPreferences([opusCodec]);
+            debugPrint('✅ Opus codec set as preferred');
+          } catch (e) {
+            debugPrint('⚠️ Could not set codec preferences: $e');
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error setting codec preferences: $e');
+    }
 
     // ICE candidate handler
     pc.onIceCandidate = (candidate) {
@@ -249,8 +267,27 @@ class WebrtcVoiceService implements VoiceChatService {
     // Remote stream handler
     pc.onTrack = (event) {
       if (event.streams.isNotEmpty) {
-        debugPrint('📡 Received remote stream from $peerId');
-        _remoteStreams[peerId] = event.streams[0];
+        final stream = event.streams[0];
+        debugPrint('📡 Received remote stream from $peerId with ${stream.getTracks().length} tracks');
+        
+        // Verify audio tracks are enabled
+        final audioTracks = stream.getAudioTracks();
+        for (var track in audioTracks) {
+          debugPrint('🔊 Remote audio track: ${track.id}, enabled: ${track.enabled}, muted: ${track.muted}');
+          if (!track.enabled) {
+            track.enabled = true;
+            debugPrint('✅ Enabled remote audio track');
+          }
+        }
+        
+        // Ensure speaker is on
+        Helper.setSpeakerphoneOn(true).then((_) {
+          debugPrint('🔊 Speaker phone enabled for remote stream');
+        }).catchError((e) {
+          debugPrint('⚠️ Failed to enable speaker: $e');
+        });
+        
+        _remoteStreams[peerId] = stream;
         _updateConnectedUsers();
       }
     };
@@ -328,6 +365,16 @@ class WebrtcVoiceService implements VoiceChatService {
     try {
       debugPrint('📨 Received WebRTC Offer from $senderId');
       
+      // Ensure we have a local stream if we are receiving an offer (Proximity case)
+      if (_localStream == null) {
+         try {
+           await _initLocalStream();
+         } catch (e) {
+           debugPrint('⚠️ Could not init local stream for offer: $e');
+           // Continue anyway to establish connection (receive only?)
+         }
+      }
+
       // Close existing connection if any
       final existingPc = _peerConnections[senderId];
       if (existingPc != null) {
@@ -399,6 +446,11 @@ class WebrtcVoiceService implements VoiceChatService {
 
     try {
       debugPrint('📞 Initiating WebRTC Call to $peerId');
+      
+      if (_localStream == null) {
+         await _initLocalStream();
+      }
+
       final pc = await _createPeerConnection(peerId);
       
       final offer = await pc.createOffer();

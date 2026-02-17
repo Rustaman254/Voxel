@@ -142,12 +142,26 @@ class WorldController extends StateNotifier<WorldState> {
     // In global mode (not in a room), we use P2P mesh voice for nearby users
     if (state.activeEventId == null && state.roomWorldOffset == Offset.zero) {
        for (final peer in peers) {
-        final dist = Geolocator.distanceBetween(
-             state.myPosition!.latitude, state.myPosition!.longitude, 
-             peer.latitude, peer.longitude
-         );
+         double dist = 0.0;
+         bool isNearby = false;
+
+         // Check if we are using GPS or Virtual coords
+         // If latitude is 0, we assume Virtual World mode
+         if (state.myPosition!.latitude != 0 && peer.latitude != 0 && state.isGpsMode) {
+            dist = Geolocator.distanceBetween(
+                 state.myPosition!.latitude, state.myPosition!.longitude, 
+                 peer.latitude, peer.longitude
+             );
+             // Tighter GPS radius
+             if (dist < 12.0) isNearby = true;
+         } else {
+            // Virtual World Distance (Euclidean)
+            dist = sqrt(pow(peer.x - state.myPosition!.x, 2) + pow(peer.y - state.myPosition!.y, 2));
+            // Tighter Virtual radius
+            if (dist < 150.0) isNearby = true;
+         }
          
-         if (dist < 20.0) {
+         if (isNearby) {
             _voiceChatService!.initiateCall(peer.userId);
          }
        }

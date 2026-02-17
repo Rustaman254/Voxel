@@ -1421,10 +1421,7 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                                    final unreadCount = ref.watch(notificationServiceProvider).where((n) => n.type == 'message' && !n.isRead).length; 
                                    // Note: notificationService state is List<AppNotification>
                                    
-                                   return ShakeAnimatedWidget(
-                                     isShaking: unreadCount > 0,
-                                     startDelay: const Duration(seconds: 3),
-                                     child: _buildFloatingNavItem(
+                                   return _buildFloatingNavItem(
                                         heroIcon: HeroIcons.chatBubbleLeftRight,
                                         isSelected: _selectedNavIndex == 2,
                                         badgeCount: unreadCount,
@@ -1439,8 +1436,7 @@ class _WorldScreenState extends ConsumerState<WorldScreen> {
                                             setState(() => _selectedNavIndex = 0);
                                           });
                                         },
-                                     ),
-                                   );
+                                      );
                                  }
                                ),
                              ),
