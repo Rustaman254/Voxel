@@ -11,6 +11,9 @@ class ChatMessage {
   final bool isRead;
   final String? replyToId;
   final String? replyToMessage;
+  final String status; // 'sent', 'delivered', 'read'
+  final String? roomId; // null = private, set = lobby/room message
+  final String? senderName;
 
   ChatMessage({
     required this.id,
@@ -21,6 +24,9 @@ class ChatMessage {
     this.isRead = false,
     this.replyToId,
     this.replyToMessage,
+    this.status = 'sent',
+    this.roomId,
+    this.senderName,
   });
 
   Map<String, dynamic> toMap() {
@@ -33,6 +39,9 @@ class ChatMessage {
       'isRead': isRead ? 1 : 0,
       'replyToId': replyToId,
       'replyToMessage': replyToMessage,
+      'status': status,
+      'roomId': roomId,
+      'senderName': senderName,
     };
   }
 
@@ -46,6 +55,28 @@ class ChatMessage {
       isRead: map['isRead'] == 1,
       replyToId: map['replyToId'],
       replyToMessage: map['replyToMessage'],
+      status: map['status'] ?? 'sent',
+      roomId: map['roomId'],
+      senderName: map['senderName'],
+    );
+  }
+
+  ChatMessage copyWith({
+    String? status,
+    bool? isRead,
+  }) {
+    return ChatMessage(
+      id: id,
+      senderId: senderId,
+      receiverId: receiverId,
+      message: message,
+      timestamp: timestamp,
+      isRead: isRead ?? this.isRead,
+      replyToId: replyToId,
+      replyToMessage: replyToMessage,
+      status: status ?? this.status,
+      roomId: roomId,
+      senderName: senderName,
     );
   }
 }
@@ -69,7 +100,7 @@ class ChatDatabaseService {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE messages(
@@ -80,14 +111,28 @@ class ChatDatabaseService {
             timestamp INTEGER NOT NULL,
             isRead INTEGER NOT NULL DEFAULT 0,
             replyToId TEXT,
-            replyToMessage TEXT
+            replyToMessage TEXT,
+            status TEXT NOT NULL DEFAULT 'sent',
+            roomId TEXT,
+            senderName TEXT
           )
         ''');
         
-        // Create index for faster queries
         await db.execute('''
           CREATE INDEX idx_conversation ON messages(senderId, receiverId)
         ''');
+        await db.execute('''
+          CREATE INDEX idx_room ON messages(roomId)
+        ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute("ALTER TABLE messages ADD COLUMN status TEXT NOT NULL DEFAULT 'sent'");
+          await db.execute("ALTER TABLE messages ADD COLUMN roomId TEXT");
+          await db.execute("ALTER TABLE messages ADD COLUMN senderName TEXT");
+          await db.execute('CREATE INDEX IF NOT EXISTS idx_room ON messages(roomId)');
+          debugPrint('📦 Database migrated from v$oldVersion to v$newVersion');
+        }
       },
     );
   }
@@ -106,9 +151,23 @@ class ChatDatabaseService {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       'messages',
-      where: '(senderId = ? AND receiverId = ?) OR (senderId = ? AND receiverId = ?)',
+      where: 'roomId IS NULL AND ((senderId = ? AND receiverId = ?) OR (senderId = ? AND receiverId = ?))',
       whereArgs: [userId, peerId, peerId, userId],
       orderBy: 'timestamp ASC',
+    );
+
+    return List.generate(maps.length, (i) => ChatMessage.fromMap(maps[i]));
+  }
+
+  /// Get lobby/room messages
+  Future<List<ChatMessage>> getLobbyMessages(String roomId, {int limit = 100}) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'messages',
+      where: 'roomId = ?',
+      whereArgs: [roomId],
+      orderBy: 'timestamp ASC',
+      limit: limit,
     );
 
     return List.generate(maps.length, (i) => ChatMessage.fromMap(maps[i]));
@@ -118,7 +177,7 @@ class ChatDatabaseService {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       'messages',
-      where: '(senderId = ? AND receiverId = ?) OR (senderId = ? AND receiverId = ?)',
+      where: 'roomId IS NULL AND ((senderId = ? AND receiverId = ?) OR (senderId = ? AND receiverId = ?))',
       whereArgs: [userId, peerId, peerId, userId],
       orderBy: 'timestamp DESC',
       limit: 1,
@@ -132,13 +191,14 @@ class ChatDatabaseService {
       'timestamp': message.timestamp,
       'isRead': message.isRead,
       'isSentByMe': message.senderId == userId,
+      'status': message.status,
     };
   }
 
   Future<int> getUnreadCount(String userId, String peerId) async {
     final db = await database;
     final result = await db.rawQuery(
-      'SELECT COUNT(*) as count FROM messages WHERE senderId = ? AND receiverId = ? AND isRead = 0',
+      'SELECT COUNT(*) as count FROM messages WHERE senderId = ? AND receiverId = ? AND isRead = 0 AND roomId IS NULL',
       [peerId, userId],
     );
     return Sqflite.firstIntValue(result) ?? 0;
@@ -148,10 +208,22 @@ class ChatDatabaseService {
     final db = await database;
     await db.update(
       'messages',
-      {'isRead': 1},
-      where: 'senderId = ? AND receiverId = ?',
+      {'isRead': 1, 'status': 'read'},
+      where: 'senderId = ? AND receiverId = ? AND roomId IS NULL',
       whereArgs: [peerId, userId],
     );
+  }
+
+  /// Update message status (sent → delivered → read)
+  Future<void> updateMessageStatus(String messageId, String status) async {
+    final db = await database;
+    await db.update(
+      'messages',
+      {'status': status},
+      where: 'id = ?',
+      whereArgs: [messageId],
+    );
+    debugPrint('📝 Updated message $messageId status to $status');
   }
 
   Future<List<String>> getAllConversationPeerIds(String userId) async {
@@ -163,7 +235,7 @@ class ChatDatabaseService {
           ELSE senderId 
         END as peerId
       FROM messages
-      WHERE senderId = ? OR receiverId = ?
+      WHERE (senderId = ? OR receiverId = ?) AND roomId IS NULL
       ORDER BY timestamp DESC
     ''', [userId, userId, userId]);
 
@@ -174,7 +246,7 @@ class ChatDatabaseService {
     final db = await database;
     await db.delete(
       'messages',
-      where: '(senderId = ? AND receiverId = ?) OR (senderId = ? AND receiverId = ?)',
+      where: 'roomId IS NULL AND ((senderId = ? AND receiverId = ?) OR (senderId = ? AND receiverId = ?))',
       whereArgs: [userId, peerId, peerId, userId],
     );
   }

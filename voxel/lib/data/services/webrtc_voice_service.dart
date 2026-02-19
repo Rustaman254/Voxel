@@ -169,7 +169,8 @@ class WebrtcVoiceService implements VoiceChatService {
 
     try {
       _localStream = await navigator.mediaDevices.getUserMedia(constraints);
-      await Helper.setSpeakerphoneOn(true);
+      // DO NOT enable speakerphone here — only for remote streams
+      // This prevents local mic audio from playing through the speaker (echo)
       debugPrint('✅ Local audio stream initialized with enhanced quality');
     } catch (e) {
       debugPrint('❌ Failed to get local stream: $e');
@@ -280,7 +281,7 @@ class WebrtcVoiceService implements VoiceChatService {
           }
         }
         
-        // Ensure speaker is on
+        // Enable speakerphone ONLY for remote audio (not local mic)
         Helper.setSpeakerphoneOn(true).then((_) {
           debugPrint('🔊 Speaker phone enabled for remote stream');
         }).catchError((e) {

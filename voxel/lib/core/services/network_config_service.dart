@@ -11,7 +11,7 @@ class NetworkConfigService {
   static const String _ipKey = 'server_ip';
   
   // Default fallback IP
-  String _currentIp = '192.168.1.4'; // Default to old one until updated
+  String _currentIp = '192.168.31.194'; 
   
   String get currentIp => _currentIp;
 
@@ -23,9 +23,9 @@ class NetworkConfigService {
       } else {
         // Set default based on platform if not saved
         if (!kIsWeb && Platform.isAndroid) {
-          _currentIp = '192.168.1.4';
+          _currentIp = '192.168.31.194';
         } else {
-           _currentIp = '192.168.1.4';
+           _currentIp = '192.168.31.194';
         }
       }
       debugPrint('🌐 NetworkConfig initialized with IP: $_currentIp');

@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../domain/entities/room.dart';
 import '../state/room_controller.dart';
 import '../state/auth_notifier.dart';
+import 'lobby_chat_screen.dart';
 
 class RoomDetailsScreen extends ConsumerWidget {
   final Room room;
@@ -307,37 +308,77 @@ class RoomDetailsScreen extends ConsumerWidget {
                     ),
                     
                   if (isMember)
-                    Row(
+                    Column(
                       children: [
-                        Expanded(
-                          child: SizedBox(
-                            height: 56,
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                // Enter room voice chat logic
-                                Navigator.pop(context);
-                                ref.read(roomControllerProvider.notifier).joinRoom(room.id);
-                              },
-                              icon: const Icon(Icons.mic),
-                              label: Text(
-                                'ENTER AUDIO',
-                                style: GoogleFonts.outfit(
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: SizedBox(
+                                height: 56,
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    // Enter room voice chat logic
+                                    Navigator.pop(context);
+                                    ref.read(roomControllerProvider.notifier).joinRoom(room.id);
+                                  },
+                                  icon: const Icon(Icons.mic),
+                                  label: Text(
+                                    'ENTER AUDIO',
+                                    style: GoogleFonts.outfit(
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: SizedBox(
+                                height: 56,
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    Navigator.pop(context); // Close sheet
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (c) => LobbyChatScreen(
+                                          roomId: room.id,
+                                          roomName: room.name,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.chat_bubble_rounded),
+                                  label: Text(
+                                    'CHAT',
+                                    style: GoogleFonts.outfit(
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFB452FF),
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(height: 12),
                         SizedBox(
+                          width: double.infinity,
                           height: 56,
                           child: OutlinedButton(
                             onPressed: () {

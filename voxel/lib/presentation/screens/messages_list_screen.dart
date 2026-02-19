@@ -1,11 +1,14 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../state/peers_provider.dart';
 import '../state/auth_notifier.dart';
+import '../state/world_controller.dart';
 import '../widgets/voxel_avatar.dart';
 import 'chat_screen.dart';
 import '../../data/services/chat_database_service.dart';
+import '../../data/repositories/socket_world_repository.dart';
 import 'package:intl/intl.dart';
 
 class MessagesListScreen extends ConsumerStatefulWidget {
@@ -19,11 +22,49 @@ class _MessagesListScreenState extends ConsumerState<MessagesListScreen> {
   final ChatDatabaseService _chatDb = ChatDatabaseService();
   Map<String, Map<String, dynamic>> _lastMessages = {};
   Map<String, int> _unreadCounts = {};
+  final Set<String> _typingPeers = {};
+
+  StreamSubscription? _notificationSub;
+  StreamSubscription? _typingSub;
 
   @override
   void initState() {
     super.initState();
     _loadLastMessages();
+    _subscribeToRealTime();
+  }
+
+  void _subscribeToRealTime() {
+    final repo = ref.read(worldRepositoryProvider);
+    if (repo is! SocketWorldRepository) return;
+
+    // Real-time message updates
+    _notificationSub = repo.subscribeNotifications().listen((data) {
+      final type = data['type'];
+      if (type != 'message_received') return;
+      // Reload conversation list when new message arrives
+      _loadLastMessages();
+    });
+
+    // Typing indicator for conversation list preview
+    _typingSub = repo.subscribeTyping().listen((data) {
+      final senderId = data['senderId']?.toString() ?? '';
+      final isTyping = data['isTyping'] == true;
+      final roomId = data['roomId']?.toString() ?? '';
+
+      // Only show typing for private chats (no roomId)
+      if (roomId.isNotEmpty) return;
+
+      if (mounted) {
+        setState(() {
+          if (isTyping) {
+            _typingPeers.add(senderId);
+          } else {
+            _typingPeers.remove(senderId);
+          }
+        });
+      }
+    });
   }
 
   Future<void> _loadLastMessages() async {
@@ -60,6 +101,13 @@ class _MessagesListScreenState extends ConsumerState<MessagesListScreen> {
     } else {
       return DateFormat('M/d/yy').format(timestamp);
     }
+  }
+
+  @override
+  void dispose() {
+    _notificationSub?.cancel();
+    _typingSub?.cancel();
+    super.dispose();
   }
 
   @override
@@ -203,6 +251,7 @@ class _MessagesListScreenState extends ConsumerState<MessagesListScreen> {
               
               final lastMsg = _lastMessages[peerId];
               final unreadCount = _unreadCounts[peerId] ?? 0;
+              final isTyping = _typingPeers.contains(peerId);
 
               return _MessageListItem(
                 userId: peerId,
@@ -213,6 +262,8 @@ class _MessagesListScreenState extends ConsumerState<MessagesListScreen> {
                 timestamp: lastMsg?['timestamp'],
                 unreadCount: unreadCount,
                 isSentByMe: lastMsg?['isSentByMe'] ?? false,
+                isTyping: isTyping,
+                messageStatus: lastMsg?['status'] ?? 'sent',
                 onTap: () async {
                   await Navigator.push(
                     context,
@@ -270,6 +321,8 @@ class _MessageListItem extends StatelessWidget {
   final DateTime? timestamp;
   final int unreadCount;
   final bool isSentByMe;
+  final bool isTyping;
+  final String messageStatus;
   final VoidCallback onTap;
 
   const _MessageListItem({
@@ -281,6 +334,8 @@ class _MessageListItem extends StatelessWidget {
     this.timestamp,
     required this.unreadCount,
     required this.isSentByMe,
+    required this.isTyping,
+    required this.messageStatus,
     required this.onTap,
   });
 
@@ -380,19 +435,34 @@ class _MessageListItem extends StatelessWidget {
                   const SizedBox(height: 4),
                   Row(
                     children: [
+                      // Status tick for sent messages
+                      if (isSentByMe && !isTyping) ...[
+                        _buildStatusIcon(messageStatus),
+                        const SizedBox(width: 4),
+                      ],
                       Expanded(
-                        child: Text(
-                          lastMessage.isEmpty 
-                              ? 'Tap to start chatting' 
-                              : (isSentByMe ? 'You: ' : '') + lastMessage,
-                          style: GoogleFonts.outfit(
-                            fontSize: 14,
-                            color: unreadCount > 0 ? Colors.black87 : Colors.grey[600],
-                            fontWeight: unreadCount > 0 ? FontWeight.w600 : FontWeight.w400,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        child: isTyping
+                            ? Text(
+                                'typing...',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 14,
+                                  color: const Color(0xFFB452FF),
+                                  fontWeight: FontWeight.w500,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              )
+                            : Text(
+                                lastMessage.isEmpty 
+                                    ? 'Tap to start chatting' 
+                                    : (isSentByMe ? 'You: ' : '') + lastMessage,
+                                style: GoogleFonts.outfit(
+                                  fontSize: 14,
+                                  color: unreadCount > 0 ? Colors.black87 : Colors.grey[600],
+                                  fontWeight: unreadCount > 0 ? FontWeight.w600 : FontWeight.w400,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                       ),
                       if (unreadCount > 0)
                         Container(
@@ -426,5 +496,17 @@ class _MessageListItem extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildStatusIcon(String status) {
+    switch (status) {
+      case 'read':
+        return const Icon(Icons.done_all, size: 16, color: Color(0xFF4FC3F7));
+      case 'delivered':
+        return Icon(Icons.done_all, size: 16, color: Colors.grey[400]);
+      case 'sent':
+      default:
+        return Icon(Icons.done, size: 16, color: Colors.grey[400]);
+    }
   }
 }

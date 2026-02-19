@@ -29,6 +29,9 @@ class SocketWorldRepository implements WorldRepository {
   final _signalingController = StreamController<Map<String, dynamic>>.broadcast();
   final _moderationController = StreamController<Map<String, dynamic>>.broadcast();
   final _notificationController = StreamController<Map<String, dynamic>>.broadcast();
+  final _lobbyChatController = StreamController<Map<String, dynamic>>.broadcast();
+  final _typingController = StreamController<Map<String, dynamic>>.broadcast();
+  final _readReceiptController = StreamController<Map<String, dynamic>>.broadcast();
   
   bool _isConnected = false;
   String? _lastUserId;
@@ -240,6 +243,18 @@ class SocketWorldRepository implements WorldRepository {
           final notificationData = Map<String, dynamic>.from(payload);
           notificationData['type'] = type;
           _notificationController.add(notificationData);
+        }
+      } else if (type == 'lobby_message') {
+        if (payload is Map<String, dynamic>) {
+          _lobbyChatController.add(payload);
+        }
+      } else if (type == 'typing_indicator') {
+        if (payload is Map<String, dynamic>) {
+          _typingController.add(payload);
+        }
+      } else if (type == 'message_read_receipt') {
+        if (payload is Map<String, dynamic>) {
+          _readReceiptController.add(payload);
         }
       }
     } catch (e) {
@@ -502,6 +517,48 @@ class SocketWorldRepository implements WorldRepository {
      _send({
       'type': 'send_friend_request',
       'payload': {'targetUserId': targetUserId}
+    });
+  }
+
+  // --- Lobby Chat ---
+  Stream<Map<String, dynamic>> subscribeLobbyChat() => _lobbyChatController.stream;
+
+  void sendLobbyMessage(String content, String senderName, String messageId) {
+    _send({
+      'type': 'lobby_message',
+      'payload': {
+        'content': content,
+        'senderName': senderName,
+        'messageId': messageId,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+      },
+    });
+  }
+
+  // --- Typing Indicator ---
+  Stream<Map<String, dynamic>> subscribeTyping() => _typingController.stream;
+
+  void sendTypingIndicator({required bool isTyping, String? targetId, String? roomId}) {
+    _send({
+      'type': 'typing_indicator',
+      'payload': {
+        'isTyping': isTyping,
+        'targetId': targetId,
+        'roomId': roomId,
+      },
+    });
+  }
+
+  // --- Read Receipts ---
+  Stream<Map<String, dynamic>> subscribeReadReceipts() => _readReceiptController.stream;
+
+  void sendMarkRead(String senderId, String messageId) {
+    _send({
+      'type': 'mark_read',
+      'payload': {
+        'senderId': senderId,
+        'messageId': messageId,
+      },
     });
   }
 }

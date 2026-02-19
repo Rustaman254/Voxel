@@ -91,10 +91,28 @@ func (h *Hub) Run() {
 				continue
 			}
 
-			// Session-specific events
-			if msg.Type == "move" || msg.Type == "audio" ||
-				msg.Type == "webrtc_offer" || msg.Type == "webrtc_answer" || msg.Type == "webrtc_ice_candidate" {
+			// WebRTC signaling messages need direct peer-to-peer routing
+			if msg.Type == "webrtc_offer" || msg.Type == "webrtc_answer" || msg.Type == "webrtc_ice_candidate" {
+				// Extract targetId from payload
+				if payload, ok := msg.Payload.(map[string]interface{}); ok {
+					if targetId, ok := payload["targetId"].(string); ok && targetId != "" {
+						log.Printf("🎯 Routing %s from %s to %s", msg.Type, bm.Exclude.UserID, targetId)
 
+						// Create message with senderId for the receiver
+						routedMsg := Message{
+							Type: msg.Type,
+							Payload: map[string]interface{}{
+								"senderId": bm.Exclude.UserID,
+								"data":     payload["data"],
+							},
+						}
+						routedBytes, _ := json.Marshal(routedMsg)
+						h.sendToUser(targetId, routedBytes)
+					} else {
+						log.Printf("⚠️ WebRTC message missing targetId: %v", payload)
+					}
+				}
+			} else if msg.Type == "move" || msg.Type == "audio" {
 				// Update server state for "move" events (Global or Session)
 				if msg.Type == "move" {
 					if payload, ok := msg.Payload.(map[string]interface{}); ok {
@@ -509,6 +527,92 @@ func (h *Hub) HandleJoinRoom(payload map[string]interface{}, client *Client) {
 	h.sendExistingPositions(client)
 
 	log.Printf("✅ User %s joined room %s", userID, roomID)
+}
+
+// HandleLobbyMessage broadcasts a chat message to all clients in the same session (room).
+// Server is relay-only — no persistence. Clients store messages locally.
+func (h *Hub) HandleLobbyMessage(payload map[string]interface{}, client *Client) {
+	content, ok := payload["content"].(string)
+	if !ok || content == "" {
+		return
+	}
+
+	sessionID := client.SessionID
+	if sessionID == "" {
+		// Not in a room, ignore lobby message
+		log.Printf("⚠️ User %s tried to send lobby message without being in a room", client.UserID)
+		return
+	}
+
+	// Build the outbound message
+	msgPayload := map[string]interface{}{
+		"senderId":   client.UserID,
+		"senderName": payload["senderName"],
+		"content":    content,
+		"roomId":     sessionID,
+		"messageId":  payload["messageId"],
+		"timestamp":  payload["timestamp"],
+	}
+
+	outMsg, _ := json.Marshal(Message{
+		Type:    "lobby_message",
+		Payload: msgPayload,
+	})
+
+	// Broadcast to all clients in this session (including sender for confirmation)
+	h.broadcastToSession(outMsg, sessionID, nil)
+	log.Printf("💬 Lobby message in room %s from %s: %s", sessionID, client.UserID, content)
+}
+
+// HandleTypingIndicator relays typing status to target user (private) or session (lobby).
+func (h *Hub) HandleTypingIndicator(payload map[string]interface{}, client *Client) {
+	isTyping, _ := payload["isTyping"].(bool)
+	targetId, _ := payload["targetId"].(string)
+	roomId, _ := payload["roomId"].(string)
+
+	indicatorPayload := map[string]interface{}{
+		"senderId": client.UserID,
+		"isTyping": isTyping,
+		"targetId": targetId,
+		"roomId":   roomId,
+	}
+
+	outMsg, _ := json.Marshal(Message{
+		Type:    "typing_indicator",
+		Payload: indicatorPayload,
+	})
+
+	if roomId != "" {
+		// Lobby typing — broadcast to session excluding sender
+		h.broadcastToSession(outMsg, roomId, client)
+	} else if targetId != "" {
+		// Private typing — send to target user
+		h.sendToUser(targetId, outMsg)
+	}
+}
+
+// HandleMarkRead relays read receipt back to the original sender.
+func (h *Hub) HandleMarkRead(payload map[string]interface{}, client *Client) {
+	senderId, _ := payload["senderId"].(string)
+	messageId, _ := payload["messageId"].(string)
+
+	if senderId == "" || messageId == "" {
+		return
+	}
+
+	receiptPayload := map[string]interface{}{
+		"readerId":  client.UserID,
+		"senderId":  senderId,
+		"messageId": messageId,
+	}
+
+	outMsg, _ := json.Marshal(Message{
+		Type:    "message_read_receipt",
+		Payload: receiptPayload,
+	})
+
+	h.sendToUser(senderId, outMsg)
+	log.Printf("✓✓ Read receipt: %s read message %s from %s", client.UserID, messageId, senderId)
 }
 
 func (h *Hub) sendExistingPositions(client *Client) {

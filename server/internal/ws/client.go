@@ -124,6 +124,18 @@ func (c *Client) readPump() {
 					c.Hub.HandleFriendRequestResponse(payload, c)
 				}
 			}
+		case "lobby_message":
+			if payload, ok := msg.Payload.(map[string]interface{}); ok {
+				c.Hub.HandleLobbyMessage(payload, c)
+			}
+		case "typing_indicator":
+			if payload, ok := msg.Payload.(map[string]interface{}); ok {
+				c.Hub.HandleTypingIndicator(payload, c)
+			}
+		case "mark_read":
+			if payload, ok := msg.Payload.(map[string]interface{}); ok {
+				c.Hub.HandleMarkRead(payload, c)
+			}
 		case "create_session", "join_session", "start_game":
 			if payload, ok := msg.Payload.(map[string]interface{}); ok {
 				c.Hub.SessionManager.HandleMessage(msg.Type, payload, c)
